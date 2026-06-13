@@ -1,16 +1,16 @@
-import { createBrowserClient } from '@supabase/ssr';
+import { createBrowserClient as createSupabaseBrowserClient } from '@supabase/ssr';
 
 /**
- * Creates a client-side Supabase client.
- * Uses NEXT_PUBLIC_ prefixed environment variables which are safe for client-side execution.
+ * Creates a browser-side Supabase client.
+ * Named explicitly to prevent developer import errors in server contexts.
  */
-export function createClient() {
+export function createBrowserClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabasePublishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (!supabaseUrl || !supabasePublishableKey) {
     throw new Error('Supabase client-side environment variables are missing.');
   }
 
-  return createBrowserClient(supabaseUrl, supabaseAnonKey);
+  return createSupabaseBrowserClient(supabaseUrl, supabasePublishableKey);
 }

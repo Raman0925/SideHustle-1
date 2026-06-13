@@ -1,9 +1,10 @@
-import { createServerClient } from '@supabase/ssr';
+import { createServerClient, type CookieMethodsServer } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 /**
  * Proxy function to securely refresh the Supabase session token on request boundaries.
  * Matches the Next.js 16 file convention 'proxy.ts' replacing 'middleware.ts'.
+ * Uses local getClaims() verification for performance and session integrity.
  */
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -11,24 +12,18 @@ export async function proxy(request: NextRequest) {
   });
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabasePublishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (!supabaseUrl || !supabasePublishableKey) {
     return supabaseResponse;
   }
 
-  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+  const supabase = createServerClient(supabaseUrl, supabasePublishableKey, {
     cookies: {
       getAll() {
         return request.cookies.getAll();
       },
-      setAll(
-        cookiesToSet: Array<{
-          name: string;
-          value: string;
-          options: any;
-        }>,
-      ) {
+      setAll(cookiesToSet) {
         cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
         supabaseResponse = NextResponse.next({
           request,
@@ -37,12 +32,12 @@ export async function proxy(request: NextRequest) {
           supabaseResponse.cookies.set(name, value, options),
         );
       },
-    },
+    } as CookieMethodsServer,
   });
 
-  // IMPORTANT: Do not use auth.getSession() as it can be easily spoofed on the client.
-  // auth.getUser() always makes a secure verification call to the Supabase auth server.
-  await supabase.auth.getUser();
+  // IMPORTANT: Do not trust auth.getSession() inside server code.
+  // getClaims() validates the JWT signature against published public keys securely on every tick.
+  await supabase.auth.getClaims();
 
   return supabaseResponse;
 }

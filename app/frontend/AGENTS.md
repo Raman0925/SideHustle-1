@@ -20,6 +20,6 @@ Avoid deprecated and insecure integration patterns. Follow these standards:
      setAll(cookiesToSet) { cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options)); }
    }
    ```
-3. **Never use `auth.getSession()` for Server Authorization**: `getSession()` is insecure on the server side because it trusts the cookie's JWT without verifying it with Supabase. Always use `supabase.auth.getUser()` to securely fetch and verify the user.
-4. **Isolate Service Role Key**: Never expose `SUPABASE_SERVICE_ROLE_KEY` (or any key not prefixed with `NEXT_PUBLIC_`) to the client components.
+3. **Never use `auth.getSession()` for Server Authorization**: `getSession()` is insecure on the server because it trusts the cookie's JWT without verifying it. For proxy/middleware validation, always use `supabase.auth.getClaims()` to verify JWT signatures locally against cached public keys without hitting the database, or use `supabase.auth.getUser()`.
+4. **Isolate Service Role Key**: Never expose `SUPABASE_SERVICE_ROLE_KEY` to the client. Only expose `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (the modern publishable key replacing legacy `NEXT_PUBLIC_SUPABASE_ANON_KEY`).
 <!-- END:supabase-agent-rules -->

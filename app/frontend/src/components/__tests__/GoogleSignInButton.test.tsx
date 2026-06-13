@@ -1,12 +1,12 @@
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { GoogleSignInButton } from '../GoogleSignInButton';
-import { createClient } from '@/lib/supabase/client';
+import { createBrowserClient } from '@/lib/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 // Mock client and toast hooks to avoid invoking real APIs during testing
 vi.mock('@/lib/supabase/client', () => ({
-  createClient: vi.fn(),
+  createBrowserClient: vi.fn(),
 }));
 
 vi.mock('@/hooks/use-toast', () => ({
@@ -27,7 +27,7 @@ describe('GoogleSignInButton', () => {
         signInWithOAuth: mockSignInWithOAuth,
       },
     };
-    (createClient as any).mockReturnValue(mockSupabase);
+    (createBrowserClient as any).mockReturnValue(mockSupabase);
   });
 
   afterEach(() => {

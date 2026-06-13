@@ -55,12 +55,12 @@ export async function createClient() {
 
 ## 3. Server Authorization checks
 *   **Do NOT use `supabase.auth.getSession()` on the server**: The session returned is read from cookies and can be easily spoofed on the client.
-*   **DO use `supabase.auth.getUser()`**: Always verify the JWT against the Supabase Auth server to confirm the user's identity securely.
+*   **DO use `supabase.auth.getClaims()`**: For proxy/middleware checks, use `getClaims()` which verifies the JWT signature locally against cached public keys (JWKS) without making external network calls, providing optimal performance. Alternatively, use `supabase.auth.getUser()`.
 
 ---
 
 ## 4. Key Management & RLS
-*   **`NEXT_PUBLIC_SUPABASE_URL`** and **`NEXT_PUBLIC_SUPABASE_ANON_KEY`** are safe for client-side inclusion (prefixed for Next.js).
+*   **`NEXT_PUBLIC_SUPABASE_URL`** and **`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`** are safe for client-side inclusion (prefixed for Next.js).
 *   **`SUPABASE_SERVICE_ROLE_KEY`** must **NEVER** be prefixed or exposed to the client. It bypasses Row Level Security (RLS) entirely.
 
 ---

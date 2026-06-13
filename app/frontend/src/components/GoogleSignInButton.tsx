@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
-import { createClient } from '@/lib/supabase/client';
+import { createBrowserClient } from '@/lib/supabase/client';
 import { Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
@@ -18,7 +18,7 @@ export function GoogleSignInButton() {
     if (isLoading) return; // Prevent double-clicks / concurrent execution
     setIsLoading(true);
 
-    const supabase = createClient();
+    const supabase = createBrowserClient();
 
     // Setup an 8-second timeout handler for network issues/redirection freezes
     const timeoutId = setTimeout(() => {
