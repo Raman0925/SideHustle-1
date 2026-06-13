@@ -41,7 +41,9 @@ export function Toaster() {
                 <div
                   className={cn(
                     'text-xs opacity-90',
-                    isDestructive ? 'text-red-700 dark:text-red-200' : 'text-zinc-500 dark:text-zinc-400',
+                    isDestructive
+                      ? 'text-red-700 dark:text-red-200'
+                      : 'text-zinc-500 dark:text-zinc-400',
                   )}
                 >
                   {description}

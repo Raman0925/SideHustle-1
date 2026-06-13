@@ -19,7 +19,7 @@ export async function GET(request: Request) {
   if (code) {
     try {
       const supabase = await createClient();
-      
+
       // Exchanges the authorization code (part of the PKCE flow) for a session token.
       // This sets the HTTP-only cookies securely in the background.
       const { error } = await supabase.auth.exchangeCodeForSession(code);

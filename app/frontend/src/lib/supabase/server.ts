@@ -23,13 +23,11 @@ export async function createClient() {
       },
       setAll(cookiesToSet) {
         try {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options)
-          );
+          cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options));
         } catch {
           // Note: The setAll method can be called from a Server Component.
           // In Next.js, setting cookies from a Server Component will throw.
-          // This is expected and safe, as the middleware (middleware.ts) 
+          // This is expected and safe, as the middleware (middleware.ts)
           // handles the actual token refresh on requests.
         }
       },
