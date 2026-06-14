@@ -15,27 +15,27 @@ describe('authMiddleware', () => {
   });
 
   it('should bypass auth for /health, /docs, and /favicon.ico', async () => {
-    const reply = {};
+    const reply: any = {};
 
     // Test health
-    const reqHealth = { url: '/health' };
+    const reqHealth: any = { url: '/health' };
     await expect(authMiddleware(reqHealth, reply)).resolves.toBeUndefined();
 
     // Test docs
-    const reqDocs = { url: '/docs/index.html' };
+    const reqDocs: any = { url: '/docs/index.html' };
     await expect(authMiddleware(reqDocs, reply)).resolves.toBeUndefined();
 
     // Test favicon
-    const reqFavicon = { url: '/favicon.ico' };
+    const reqFavicon: any = { url: '/favicon.ico' };
     await expect(authMiddleware(reqFavicon, reply)).resolves.toBeUndefined();
   });
 
   it('should throw 401 if Authorization header is missing', async () => {
-    const req = {
+    const req: any = {
       url: '/auth/me',
       headers: {},
     };
-    const reply = {};
+    const reply: any = {};
 
     await expect(authMiddleware(req, reply)).rejects.toThrow(
       'Unauthorized: Missing or invalid token format',
@@ -43,13 +43,13 @@ describe('authMiddleware', () => {
   });
 
   it('should throw 401 if Authorization header is not Bearer', async () => {
-    const req = {
+    const req: any = {
       url: '/auth/me',
       headers: {
         authorization: 'Basic abc',
       },
     };
-    const reply = {};
+    const reply: any = {};
 
     await expect(authMiddleware(req, reply)).rejects.toThrow(
       'Unauthorized: Missing or invalid token format',
@@ -57,13 +57,13 @@ describe('authMiddleware', () => {
   });
 
   it('should throw 401 if token verification fails', async () => {
-    const req = {
+    const req: any = {
       url: '/auth/me',
       headers: {
         authorization: 'Bearer invalid-token-sig',
       },
     };
-    const reply = {};
+    const reply: any = {};
 
     await expect(authMiddleware(req, reply)).rejects.toThrow(
       'Unauthorized: Invalid or expired access token',
@@ -93,7 +93,7 @@ describe('authMiddleware', () => {
       rows: [mockProfile],
     });
 
-    const req = {
+    const req: any = {
       url: '/auth/me',
       headers: {
         authorization: `Bearer ${token}`,
@@ -107,7 +107,7 @@ describe('authMiddleware', () => {
         warn: vi.fn(),
       },
     };
-    const reply = {};
+    const reply: any = {};
 
     await authMiddleware(req, reply);
 
@@ -134,7 +134,7 @@ describe('authMiddleware', () => {
     });
 
     const mockWarn = vi.fn();
-    const req = {
+    const req: any = {
       url: '/auth/me',
       headers: {
         authorization: `Bearer ${token}`,
@@ -148,7 +148,7 @@ describe('authMiddleware', () => {
         warn: mockWarn,
       },
     };
-    const reply = {};
+    const reply: any = {};
 
     await authMiddleware(req, reply);
 

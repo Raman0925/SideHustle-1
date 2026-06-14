@@ -1,10 +1,11 @@
+import { FastifyInstance, FastifyPluginOptions, FastifyRequest, FastifyReply } from 'fastify';
 import { UserService } from './user.service.js';
 
 /**
  * User Controller Plugin
  * Defines routes and Swagger schemas under the /auth prefix.
  */
-export default async function userController(fastify, options) {
+export default async function userController(fastify: FastifyInstance, options: FastifyPluginOptions) {
   // Instantiate UserService with Fastify's pg pool
   const userService = new UserService(fastify.pg);
 
@@ -48,7 +49,7 @@ export default async function userController(fastify, options) {
         },
       },
     },
-    async (request, reply) => {
+    async (request: FastifyRequest, reply: FastifyReply) => {
       // request.user is populated by global authMiddleware
       // Query service to ensure latest DB record is fetched
       const profile = await userService.getProfile(request.user.id);
@@ -85,12 +86,12 @@ export default async function userController(fastify, options) {
         },
       },
     },
-    async (request, reply) => {
-      const { full_name, avatar_url } = request.body || {};
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const { full_name, avatar_url } = (request.body as { full_name?: string | null; avatar_url?: string | null }) || {};
 
       const updatedProfile = await userService.updateProfile(request.user.id, {
-        fullName: full_name,
-        avatarUrl: avatar_url,
+        fullName: full_name ?? null,
+        avatarUrl: avatar_url ?? null,
       });
 
       return updatedProfile;

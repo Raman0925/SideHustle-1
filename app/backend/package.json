@@ -2,10 +2,11 @@
   "name": "backend",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node --watch server.js",
+    "build": "tsc",
+    "start": "node --conditions=production dist/server.js",
+    "dev": "tsx watch server.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "format": "prettier --write ."
@@ -15,11 +16,26 @@
   "license": "ISC",
   "type": "module",
   "imports": {
-    "#config/*.js": "./src/config/*.js",
-    "#plugins/*.js": "./src/plugins/*.js",
-    "#middlewares/*.js": "./src/middlewares/*.js",
-    "#domains/*.js": "./src/domains/*.js",
-    "#utils/*.js": "./src/utils/*.js"
+    "#config/*.js": {
+      "production": "./dist/src/config/*.js",
+      "default": "./src/config/*.js"
+    },
+    "#plugins/*.js": {
+      "production": "./dist/src/plugins/*.js",
+      "default": "./src/plugins/*.js"
+    },
+    "#middlewares/*.js": {
+      "production": "./dist/src/middlewares/*.js",
+      "default": "./src/middlewares/*.js"
+    },
+    "#domains/*.js": {
+      "production": "./dist/src/domains/*.js",
+      "default": "./src/domains/*.js"
+    },
+    "#utils/*.js": {
+      "production": "./dist/src/utils/*.js",
+      "default": "./src/utils/*.js"
+    }
   },
   "dependencies": {
     "@fastify/cors": "^11.2.0",
@@ -41,7 +57,12 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^20.19.43",
+    "@types/pg": "^8.20.0",
     "prettier": "^3.4.2",
+    "tsx": "^4.22.4",
+    "typescript": "^5.9.3",
     "vitest": "^2.1.8"
   }
 }

@@ -1,12 +1,16 @@
+import pg from 'pg';
+
 /**
  * User Repository
  * Handles direct database operations on the public.profiles table.
  */
 export class UserRepository {
+  private readonly db: pg.Pool;
+
   /**
    * @param {import('pg').Pool} pgPool
    */
-  constructor(pgPool) {
+  constructor(pgPool: pg.Pool) {
     this.db = pgPool;
   }
 
@@ -15,7 +19,7 @@ export class UserRepository {
    * @param {string} id
    * @returns {Promise<object|null>}
    */
-  async findById(id) {
+  async findById(id: string): Promise<any> {
     const query = `
       SELECT id, email, full_name, avatar_url, updated_at 
       FROM public.profiles 
@@ -33,7 +37,7 @@ export class UserRepository {
    * @param {string|null} profileData.avatarUrl
    * @returns {Promise<object>} Updated profile
    */
-  async updateProfile(id, { fullName, avatarUrl }) {
+  async updateProfile(id: string, { fullName, avatarUrl }: { fullName: string | null; avatarUrl: string | null }): Promise<any> {
     const query = `
       UPDATE public.profiles 
       SET 

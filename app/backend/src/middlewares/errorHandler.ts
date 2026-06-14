@@ -1,8 +1,10 @@
+import { FastifyRequest, FastifyReply, FastifyError } from 'fastify';
+
 /**
  * Global Fastify Error Handler
  * Standardizes API error responses and prevents sensitive server details from leaking.
  */
-export default function errorHandler(error, request, reply) {
+export default function errorHandler(error: FastifyError, request: FastifyRequest, reply: FastifyReply) {
   // Log the full error stack using Fastify's native logger
   request.log.error(error);
 

@@ -1,6 +1,7 @@
-import jwt from 'jsonwebtoken';
+import jwt, { JwtPayload } from 'jsonwebtoken';
+import { FastifyRequest, FastifyReply, FastifyError } from 'fastify';
 
-export default async function authMiddleware(request, reply) {
+export default async function authMiddleware(request: FastifyRequest, reply: FastifyReply) {
   const { url } = request;
 
   if (url === '/health' || url.startsWith('/docs') || url.startsWith('/favicon.ico')) {
@@ -8,7 +9,7 @@ export default async function authMiddleware(request, reply) {
   }
   const authHeader = request.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    const err = new Error('Unauthorized: Missing or invalid token format');
+    const err = new Error('Unauthorized: Missing or invalid token format') as FastifyError;
     err.statusCode = 401;
     throw err;
   }
@@ -18,24 +19,24 @@ export default async function authMiddleware(request, reply) {
   try {
     const secret = process.env.JWT_SECRET;
     if (!secret) {
-      const err = new Error('Internal Server Error: JWT secret is not configured');
+      const err = new Error('Internal Server Error: JWT secret is not configured') as FastifyError;
       err.statusCode = 500;
       throw err;
     }
 
-    let decoded;
+    let decoded: JwtPayload;
     try {
       decoded = jwt.verify(token, secret, {
         algorithms: ['HS256'],
-      });
+      }) as JwtPayload;
     } catch (jwtErr) {
-      const err = new Error('Unauthorized: Invalid or expired access token');
+      const err = new Error('Unauthorized: Invalid or expired access token') as FastifyError;
       err.statusCode = 401;
       throw err;
     }
 
     if (!decoded || !decoded.sub) {
-      const err = new Error('Unauthorized: Invalid or expired access token');
+      const err = new Error('Unauthorized: Invalid or expired access token') as FastifyError;
       err.statusCode = 401;
       throw err;
     }
@@ -58,7 +59,7 @@ export default async function authMiddleware(request, reply) {
       // Resilient Fallback: If DB sync trigger hasn't finished, construct profile from JWT metadata
       request.user = {
         id: user.id,
-        email: user.email,
+        email: user.email || '',
         full_name: user.user_metadata?.full_name || user.user_metadata?.name || null,
         avatar_url: user.user_metadata?.avatar_url || null,
         updated_at: new Date().toISOString(),
@@ -72,9 +73,10 @@ export default async function authMiddleware(request, reply) {
     }
   } catch (err) {
     // Pass errors down to Fastify's error handler hook
-    if (!err.statusCode) {
-      err.statusCode = 401;
+    const error = err as FastifyError;
+    if (!error.statusCode) {
+      error.statusCode = 401;
     }
-    throw err;
+    throw error;
   }
 }

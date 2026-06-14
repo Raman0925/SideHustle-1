@@ -1,7 +1,8 @@
 import pg from 'pg';
 import fp from 'fastify-plugin';
+import { FastifyInstance, FastifyPluginOptions } from 'fastify';
 
-async function dbConnectorPlugin(fastify, options) {
+async function dbConnectorPlugin(fastify: FastifyInstance, options: FastifyPluginOptions) {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
     throw new Error('DATABASE_URL is not defined in environment variables');
@@ -23,7 +24,7 @@ async function dbConnectorPlugin(fastify, options) {
     fastify.log.info('Database pool connected successfully');
     client.release();
   } catch (err) {
-    fastify.log.error('Database connection failed:', err);
+    fastify.log.error(err as Error, 'Database connection failed');
     throw err;
   }
 
@@ -31,7 +32,7 @@ async function dbConnectorPlugin(fastify, options) {
   fastify.decorate('pg', pool);
 
   // Close the pool when the fastify instance is closed
-  fastify.addHook('onClose', async (instance) => {
+  fastify.addHook('onClose', async (instance: FastifyInstance) => {
     fastify.log.info('Closing database connection pool...');
     await pool.end();
     fastify.log.info('Database connection pool closed');

@@ -16,8 +16,8 @@ export const swaggerConfig = {
     components: {
       securitySchemes: {
         bearerAuth: {
-          type: 'http',
-          scheme: 'bearer',
+          type: 'http' as const,
+          scheme: 'bearer' as const,
           bearerFormat: 'JWT',
           description: 'Input your Supabase Session JWT token to authenticate requests.',
         },
@@ -27,11 +27,11 @@ export const swaggerConfig = {
 };
 
 export const swaggerUiConfig = {
-  routePrefix: '/docs',
+  routePrefix: '/docs' as const,
   uiConfig: {
-    docExpansion: 'list',
+    docExpansion: 'list' as const,
     deepLinking: false,
   },
   staticCSP: true,
-  transformStaticCSP: (header) => header,
+  transformStaticCSP: (header: string) => header,
 };
