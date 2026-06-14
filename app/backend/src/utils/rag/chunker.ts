@@ -28,7 +28,7 @@ export class Chunker {
   public chunk(text: string): Chunk[] {
     if (!text) return [];
 
-    // 1. Split into paragraphs
+    // 1. Split into paragraphs with exact position tracking
     const paragraphs: { text: string; start: number; end: number }[] = [];
     let index = 0;
     const rawParagraphs = text.split(/(\n\n)/);
@@ -47,7 +47,7 @@ export class Chunker {
       }
     }
 
-    
+    // 2. Sentence splitting for large paragraphs
     const segments: { text: string; start: number; end: number }[] = [];
     for (const para of paragraphs) {
       const paraTokens = this.tokenManager.getTokenCount(para.text);
@@ -80,6 +80,7 @@ export class Chunker {
       }
     }
 
+    // 3. Pre-accumulate words into sub-sentence chunks to avoid creating tiny single-word segments
     const finalSegments: { text: string; start: number; end: number }[] = [];
     for (const seg of segments) {
       const segTokens = this.tokenManager.getTokenCount(seg.text);
@@ -88,18 +89,41 @@ export class Chunker {
       } else {
         const words = seg.text.split(/(\s+)/);
         let offset = 0;
+        let currentGroup = "";
+        let groupStart = seg.start;
+
         for (let i = 0; i < words.length; i += 2) {
           const word = words[i];
           const separator = words[i + 1] || '';
           const wordText = word + separator;
+
           if (wordText.length > 0) {
-            finalSegments.push({
-              text: wordText,
-              start: seg.start + offset,
-              end: seg.start + offset + wordText.length
-            });
+            const candidate = currentGroup + wordText;
+            const candidateTokens = this.tokenManager.getTokenCount(candidate);
+
+            if (candidateTokens > this.options.maxTokens) {
+              if (currentGroup.length > 0) {
+                finalSegments.push({
+                  text: currentGroup,
+                  start: groupStart,
+                  end: seg.start + offset
+                });
+              }
+              currentGroup = wordText;
+              groupStart = seg.start + offset;
+            } else {
+              currentGroup = candidate;
+            }
             offset += wordText.length;
           }
+        }
+
+        if (currentGroup.length > 0) {
+          finalSegments.push({
+            text: currentGroup,
+            start: groupStart,
+            end: seg.start + offset
+          });
         }
       }
     }
