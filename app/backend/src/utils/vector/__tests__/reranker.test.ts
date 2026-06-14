@@ -16,6 +16,27 @@ describe('Reranker', () => {
     expect(() => new Reranker('')).toThrowError('API key is required');
   });
 
+  it('calls Cohere API and returns results sorted by relevance', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        results: [
+          { index: 1, relevance_score: 0.95 },
+          { index: 0, relevance_score: 0.60 }
+        ]
+      })
+    }));
+
+    const reranker = new Reranker('test-key');
+    const results = await reranker.rerank(
+      'how do I cancel',
+      ['manage account', 'cancel subscription']
+    );
+
+    expect(results[0].relevanceScore).toBe(0.95);
+    expect(results[0].content).toBe('cancel subscription');
+  });
+
   it('should call Cohere rerank API and return sorted documents with relevance scores', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
