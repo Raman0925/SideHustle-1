@@ -196,7 +196,7 @@ Rules:
 
 // Schema 1: Support ticket classification
 export const TicketSchema = z.object({
-  category: z.enum(['billing', 'technical', 'account', 'other']),
+  category: z.array(z.enum(['billing', 'technical', 'account', 'other'])).min(1),
   priority: z.enum(['low', 'medium', 'high', 'urgent']),
   summary: z.string().max(100),
   requiresHuman: z.boolean(),

@@ -15,7 +15,7 @@ describe('StructuredExtractor', () => {
 
   it('extract returns correct shape for valid model output', async () => {
     const validJsonOutput = JSON.stringify({
-      category: 'technical',
+      category: ['technical'],
       priority: 'high',
       summary: 'Cannot connect to database',
       requiresHuman: true
@@ -41,7 +41,7 @@ describe('StructuredExtractor', () => {
     );
 
     expect(result).toEqual({
-      category: 'technical',
+      category: ['technical'],
       priority: 'high',
       summary: 'Cannot connect to database',
       requiresHuman: true
@@ -114,14 +114,14 @@ describe('StructuredExtractor', () => {
   it('extractWithRetry retries on validation failure', async () => {
     // First call returns invalid schema (missing requiresHuman)
     const invalidJson = JSON.stringify({
-      category: 'billing',
+      category: ['billing'],
       priority: 'low',
       summary: 'Billing question'
     });
 
     // Second call returns valid schema
     const validJson = JSON.stringify({
-      category: 'billing',
+      category: ['billing'],
       priority: 'low',
       summary: 'Billing question',
       requiresHuman: false
@@ -159,7 +159,7 @@ describe('StructuredExtractor', () => {
     );
 
     expect(result).toEqual({
-      category: 'billing',
+      category: ['billing'],
       priority: 'low',
       summary: 'Billing question',
       requiresHuman: false
