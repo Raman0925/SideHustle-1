@@ -19,12 +19,6 @@ export class EmbeddingService {
         return apiKey;
     }
 
-    /**
-     * Generates a vector embedding for a single text input using OpenAI's API.
-     * Delegates to embedBatch to avoid duplicating API logic.
-     * @param text The input text to embed.
-     * @returns A promise resolving to the vector embedding (array of numbers).
-     */
     public async embed(text: string): Promise<number[]> {
         const results = await this.embedBatch([text]);
         if (results.length === 0) {
@@ -33,11 +27,6 @@ export class EmbeddingService {
         return results[0];
     }
 
-    /**
-     * Generates vector embeddings for multiple text inputs in a single batch request.
-     * @param texts An array of input texts to embed.
-     * @returns A promise resolving to an array of vector embeddings in the original order.
-     */
     public async embedBatch(texts: string[]): Promise<number[][]> {
         if (texts.length === 0) return [];
 
@@ -73,18 +62,11 @@ export class EmbeddingService {
             throw new Error("Malformed response structure from OpenAI API");
         }
 
-        // Maintain the original order by sorting on the index returned by the API
         return data.data
             .sort((a, b) => a.index - b.index)
             .map(item => item.embedding);
     }
 
-    /**
-     * Finds the candidate embedding that is most similar to the query embedding using cosine similarity.
-     * @param query The query vector.
-     * @param candidates An array of candidate vectors.
-     * @returns The index of the most similar candidate and its similarity score.
-     */
     public findMostSimilar(query: number[], candidates: number[][]): { index: number, similarity: number } {
         if (candidates.length === 0) {
             throw new Error("Candidates list cannot be empty");
