@@ -65,12 +65,13 @@ export class ToolRunner {
     let iterations = 0;
 
     const toolDefinitions = this.getDefinitions();
+    const currentMessages = [...messages];
 
     while (iterations < this.MAX_ITERATIONS) {
       const requestBody: Record<string, unknown> = {
         model: 'claude-3-5-haiku-20241022',
         max_tokens: 4096,
-        messages: messages.map(msg => ({
+        messages: currentMessages.map(msg => ({
           role: msg.role,
           content: msg.content
         }))
@@ -100,8 +101,8 @@ export class ToolRunner {
         stop_reason: 'end_turn' | 'tool_use' | 'max_tokens' | 'stop_sequence';
       };
 
-      // Push assistant's message into messages history
-      messages.push({
+      // Push assistant's message into messages history copy
+      currentMessages.push({
         role: 'assistant',
         content: responseData.content
       });
@@ -137,15 +138,13 @@ export class ToolRunner {
           }
         }
 
-        // Push tool results as a user message
-        messages.push({
+        currentMessages.push({
           role: 'user',
           content: toolResults
         });
 
         iterations++;
       } else {
-        // stop_reason is end_turn (or other reasons)
         const textBlock = responseData.content.find(block => block.type === 'text') as TextContentBlock | undefined;
         return {
           result: textBlock?.text || '',

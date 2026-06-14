@@ -69,31 +69,34 @@ describe('ToolRunner', () => {
     expect(toolCallCount).toBe(1);
     expect(mockFetch).toHaveBeenCalledTimes(2);
 
-    // Assert the message history gets populated correctly
-    // 1. Initial user prompt
-    // 2. Assistant requests tool call
-    // 3. User provides tool result
-    // 4. Assistant gives final response
-    expect(messages).toHaveLength(4);
+    // Verify the caller's array remains unmodified
+    expect(messages).toHaveLength(1);
 
-    expect(messages[1].role).toBe('assistant');
-    expect(messages[1].content[0]).toMatchObject({
+    // Verify the second call to the model includes the correct messages history
+    const secondCallArgs = mockFetch.mock.calls[1];
+    const requestBody = JSON.parse(secondCallArgs[1].body);
+    expect(requestBody.messages).toHaveLength(3);
+
+    // 1. Initial user prompt
+    expect(requestBody.messages[0]).toEqual({
+      role: 'user',
+      content: 'What is the status of order ORD-999?'
+    });
+
+    // 2. Assistant requests tool call
+    expect(requestBody.messages[1].role).toBe('assistant');
+    expect(requestBody.messages[1].content[0]).toMatchObject({
       type: 'tool_use',
       name: 'getOrderStatus',
       input: { orderId: 'ORD-999' }
     });
 
-    expect(messages[2].role).toBe('user');
-    expect(messages[2].content[0]).toMatchObject({
+    // 3. User provides tool result
+    expect(requestBody.messages[2].role).toBe('user');
+    expect(requestBody.messages[2].content[0]).toMatchObject({
       type: 'tool_result',
       tool_use_id: 'toolu_1',
       content: JSON.stringify({ orderId: 'ORD-999', status: 'shipped', eta: '2024-01-15' })
-    });
-
-    expect(messages[3].role).toBe('assistant');
-    expect(messages[3].content[0]).toMatchObject({
-      type: 'text',
-      text: 'Your order ORD-999 is shipped and will arrive on 2024-01-15.'
     });
   });
 
