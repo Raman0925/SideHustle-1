@@ -47,7 +47,7 @@ export class Chunker {
       }
     }
 
-    // 2. Sentence splitting for large paragraphs
+    
     const segments: { text: string; start: number; end: number }[] = [];
     for (const para of paragraphs) {
       const paraTokens = this.tokenManager.getTokenCount(para.text);
@@ -80,7 +80,6 @@ export class Chunker {
       }
     }
 
-    // 3. Split super-long sentences into words if they still exceed maxTokens
     const finalSegments: { text: string; start: number; end: number }[] = [];
     for (const seg of segments) {
       const segTokens = this.tokenManager.getTokenCount(seg.text);
