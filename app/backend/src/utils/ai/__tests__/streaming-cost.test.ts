@@ -81,6 +81,13 @@ describe('CostTracker', () => {
       outputTokens: 100_000
     });
   });
+
+  it('CostTracker.summarize returns an empty report when no metrics are provided', () => {
+    const summary = tracker.summarize([]);
+    expect(summary.totalCost).toBe(0);
+    expect(summary.totalTokens).toEqual({ input: 0, output: 0 });
+    expect(summary.byFeature).toEqual({});
+  });
 });
 
 describe('StreamingProvider', () => {
@@ -149,5 +156,26 @@ describe('StreamingProvider', () => {
         stream: true
       })
     }));
+  });
+
+  it('StreamingProvider throws error when API response is not OK', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      statusText: 'Internal Server Error',
+      text: async () => 'Error payload'
+    });
+
+    const provider = new StreamingProvider(apiKey);
+    await expect(
+      provider.streamComplete(
+        {
+          model: 'claude-haiku-4-5',
+          messages: [{ role: 'user', content: 'test stream' }]
+        },
+        () => {},
+        () => {}
+      )
+    ).rejects.toThrowError(/Anthropic API request failed: 500 Internal Server Error - Error payload/);
   });
 });
