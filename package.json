@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "npm run dev --workspace=app/frontend",
     "dev:frontend": "npm run dev --workspace=app/frontend",
-    "dev:backend": "node app/backend/server.js",
+    "dev:backend": "npm run dev --workspace=app/backend",
     "test": "npm test --workspaces"
   },
   "keywords": [],

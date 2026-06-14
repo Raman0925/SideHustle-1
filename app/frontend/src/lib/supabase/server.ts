@@ -1,11 +1,7 @@
 import { createServerClient, type CookieMethodsServer } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
-/**
- * Creates a server-side Supabase client.
- * Uses HTTP-only cookie storage for secure session token persistence.
- * Leverages the async cookies API matching Next.js 16 conventions.
- */
+
 export async function createClient() {
   const cookieStore = await cookies();
 
@@ -27,10 +23,7 @@ export async function createClient() {
             cookieStore.set(name, value, options)
           );
         } catch {
-          // Note: The setAll method can be called from a Server Component.
-          // In Next.js, setting cookies from a Server Component will throw.
-          // This is expected and safe, as the middleware/proxy (proxy.ts)
-          // handles the actual token refresh on requests.
+         
         }
       },
     } as CookieMethodsServer,

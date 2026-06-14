@@ -1,11 +1,6 @@
 import { createServerClient, type CookieMethodsServer } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-/**
- * Proxy function to securely refresh the Supabase session token on request boundaries.
- * Matches the Next.js 16 file convention 'proxy.ts' replacing 'middleware.ts'.
- * Uses local getClaims() verification for performance and session integrity.
- */
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
@@ -35,22 +30,22 @@ export async function proxy(request: NextRequest) {
     } as CookieMethodsServer,
   });
 
-  // IMPORTANT: Do not trust auth.getSession() inside server code.
-  // getClaims() validates the JWT signature against published public keys securely on every tick.
   await supabase.auth.getClaims();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user && request.nextUrl.pathname.startsWith('/dashboard')) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/login';
+
+    return NextResponse.redirect(url);
+  }
 
   return supabaseResponse;
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - Images / assets (svg, png, etc.)
-     */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };
