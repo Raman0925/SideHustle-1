@@ -5,6 +5,8 @@ import errorHandler from '#middlewares/errorHandler.js';
 import { requestContextMiddleware } from '#middlewares/requestContext.middleware.js';
 import authMiddleware from '#middlewares/auth.middleware.js';
 import userController from '#domains/user/user.controller.js';
+import chatController from '#domains/chat/chat.controller.js';
+import fastifySSE from '@fastify/sse';
 import loggerConfig from '#config/loggerConfig.js';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
@@ -22,6 +24,7 @@ fastify.register(cors, {
 });
 fastify.register(dbConnector);
 fastify.register(websocket);
+fastify.register(fastifySSE.default);
 fastify.register(swagger, swaggerConfig);
 fastify.register(swaggerUi, swaggerUiConfig);
 
@@ -31,6 +34,7 @@ fastify.addHook('preHandler', authMiddleware);
 
 // Register domain routes
 fastify.register(userController, { prefix: '/auth' });
+fastify.register(chatController, { prefix: '/chat' });
 
 // Register global error handler
 fastify.setErrorHandler(errorHandler);
