@@ -33,7 +33,7 @@ export class ChatService {
     const documents = searchResults.map(r => r.content);
 
     // 2. Perform budget token counts of retrieved documents to mimic assembler behavior
-    const budget = (this.assembler as any).budget;
+    const budget = this.assembler.getBudget();
     const fittedDocs: string[] = [];
     let usedTokens = 0;
     for (const doc of documents) {
@@ -82,7 +82,7 @@ export class ChatService {
     const documents = searchResults.map(r => r.content);
 
     // 2. Perform budget token counts of retrieved documents to mimic assembler behavior
-    const budget = (this.assembler as any).budget;
+    const budget = this.assembler.getBudget();
     const fittedDocs: string[] = [];
     let usedTokens = 0;
     for (const doc of documents) {

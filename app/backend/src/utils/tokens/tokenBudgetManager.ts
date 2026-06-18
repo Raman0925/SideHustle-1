@@ -34,6 +34,7 @@ export class TokenBudgetManager {
             violations
         };
     }
+    
     public truncateToFit(text: string, maxTokens: number): string {
         const tokens = encode(text);
 

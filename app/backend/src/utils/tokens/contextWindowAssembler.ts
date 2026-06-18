@@ -7,6 +7,10 @@ export class ContextWindowAssembler {
         private readonly tokenManager: TokenBudgetManager
     ) { }
 
+    public getBudget(): contextBudget {
+        return this.budget;
+    }
+
     public assemble(
         systemPrompt: string,
         history: Message[],

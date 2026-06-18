@@ -19,14 +19,14 @@ describe('ChatService', () => {
       ])
     };
     assembler = {
-      budget: {
+      getBudget: vi.fn().mockReturnValue({
         systemPrompt: 2000,
         toolDefinitions: 0,
         retrievedDocuments: 4000,
         conversationHistory: 8000,
         userMessage: 2000,
         responseBudget: 4000
-      },
+      }),
       assemble: vi.fn().mockReturnValue({
         systemPrompt: 'System Prompt',
         messages: [{ role: 'user', content: 'hello' }],
@@ -77,5 +77,30 @@ describe('ChatService', () => {
       text: 'Mocked response from Claude',
       usage: { inputTokens: 50, outputTokens: 25 }
     });
+  });
+
+  it('streamMessage calls streaming provider with correct params', async () => {
+    streaming.streamComplete.mockImplementation(
+      async (params: any, onChunk: any, onDone: any) => {
+        onChunk('Hello ');
+        onChunk('world');
+        onDone({ inputTokens: 30, outputTokens: 10 });
+      }
+    );
+
+    const chunks: string[] = [];
+    let finalUsage: any = null;
+
+    await service.streamMessage(
+      'test question',
+      [],
+      (chunk) => chunks.push(chunk),
+      (usage) => { finalUsage = usage; },
+      'fast'
+    );
+
+    expect(chunks).toEqual(['Hello ', 'world']);
+    expect(finalUsage).toEqual({ inputTokens: 30, outputTokens: 10 });
+    expect(streaming.streamComplete).toHaveBeenCalledOnce();
   });
 });
