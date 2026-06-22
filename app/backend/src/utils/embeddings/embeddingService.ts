@@ -2,16 +2,20 @@ import { cosineSimilarity } from './similarity.js';
 
 const VALID_MODELS = ['text-embedding-ada-002', 'text-embedding-3-small', 'text-embedding-3-large'];
 
-export class EmbeddingService {
-    constructor(
-        private readonly model: string,
-    ) {
-        if (!VALID_MODELS.includes(model)) {
-            throw new Error(`Invalid model: ${model}. Supported models are: ${VALID_MODELS.join(', ')}`);
-        }
+export interface EmbeddingService {
+    embed(text: string): Promise<number[]>;
+    embedBatch(texts: string[]): Promise<number[][]>;
+    findMostSimilar(query: number[], candidates: number[][]): { index: number, similarity: number };
+}
+
+export function createEmbeddingService(model: string): EmbeddingService {
+    let service: EmbeddingService;
+
+    if (!VALID_MODELS.includes(model)) {
+        throw new Error(`Invalid model: ${model}. Supported models are: ${VALID_MODELS.join(', ')}`);
     }
 
-    private getApiKey(): string {
+    function getApiKey(): string {
         const apiKey = process.env.OPENAI_API_KEY;
         if (!apiKey) {
             throw new Error("OPENAI_API_KEY environment variable is not defined");
@@ -19,18 +23,10 @@ export class EmbeddingService {
         return apiKey;
     }
 
-    public async embed(text: string): Promise<number[]> {
-        const results = await this.embedBatch([text]);
-        if (results.length === 0) {
-            throw new Error("Failed to generate embedding");
-        }
-        return results[0];
-    }
-
-    public async embedBatch(texts: string[]): Promise<number[][]> {
+    async function embedBatch(texts: string[]): Promise<number[][]> {
         if (texts.length === 0) return [];
 
-        const apiKey = this.getApiKey();
+        const apiKey = getApiKey();
 
         const response = await fetch("https://api.openai.com/v1/embeddings", {
             method: "POST",
@@ -40,7 +36,7 @@ export class EmbeddingService {
             },
             body: JSON.stringify({
                 input: texts,
-                model: this.model,
+                model: model,
                 encoding_format: "float"
             })
         });
@@ -67,7 +63,15 @@ export class EmbeddingService {
             .map(item => item.embedding);
     }
 
-    public findMostSimilar(query: number[], candidates: number[][]): { index: number, similarity: number } {
+    async function embed(text: string): Promise<number[]> {
+        const results = await service.embedBatch([text]);
+        if (results.length === 0) {
+            throw new Error("Failed to generate embedding");
+        }
+        return results[0];
+    }
+
+    function findMostSimilar(query: number[], candidates: number[][]): { index: number, similarity: number } {
         if (candidates.length === 0) {
             throw new Error("Candidates list cannot be empty");
         }
@@ -85,4 +89,12 @@ export class EmbeddingService {
 
         return { index: bestIndex, similarity: bestSimilarity };
     }
+
+    service = {
+        embed,
+        embedBatch,
+        findMostSimilar
+    };
+
+    return service;
 }

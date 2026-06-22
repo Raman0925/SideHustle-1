@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { TokenBudgetManager } from '../tokenBudgetManager.js';
+import { TokenBudgetManager, createTokenBudgetManager } from '../tokenBudgetManager.js';
 import { contextBudget } from '../types.js';
 
 describe('TokenBudgetManager', () => {
@@ -12,7 +12,7 @@ describe('TokenBudgetManager', () => {
     responseBudget: 50
   };
 
-  const manager = new TokenBudgetManager(mockBudget);
+  const manager = createTokenBudgetManager(mockBudget);
 
   describe('getTokenCount', () => {
     it('should return 0 for empty string', () => {

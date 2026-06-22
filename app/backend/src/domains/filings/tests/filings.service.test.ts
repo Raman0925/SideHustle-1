@@ -10,10 +10,12 @@ const { mockNsePoll, mockBsePoll, mockClassify } = vi.hoisted(() => {
 
 vi.mock('../filings.poller.js', () => {
   return {
-    NSEPoller: vi.fn().mockImplementation(() => ({
+    NSEPoller: vi.fn(),
+    BSEPoller: vi.fn(),
+    createNSEPoller: vi.fn().mockImplementation(() => ({
       poll: mockNsePoll,
     })),
-    BSEPoller: vi.fn().mockImplementation(() => ({
+    createBSEPoller: vi.fn().mockImplementation(() => ({
       poll: mockBsePoll,
     })),
   };
@@ -21,13 +23,14 @@ vi.mock('../filings.poller.js', () => {
 
 vi.mock('../filings.classifier.js', () => {
   return {
-    FilingClassifier: vi.fn().mockImplementation(() => ({
+    FilingClassifier: vi.fn(),
+    createFilingClassifier: vi.fn().mockImplementation(() => ({
       classify: mockClassify,
     })),
   };
 });
 
-import { FilingsService } from '../filings.service.js';
+import { FilingsService, createFilingsService } from '../filings.service.js';
 
 describe('FilingsService', () => {
   let repository: any;
@@ -53,7 +56,7 @@ describe('FilingsService', () => {
     embeddingService = {
       embed: vi.fn().mockResolvedValue([0.1, 0.2]),
     };
-    service = new FilingsService(repository, summarizer, embeddingService);
+    service = createFilingsService(repository, summarizer, embeddingService);
     mockNsePoll.mockReset();
     mockBsePoll.mockReset();
     mockClassify.mockReset();

@@ -1,7 +1,7 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { AIService } from '../ai-service.js';
-import { ModelRouter, CompletionParams } from '../model-router.js';
-import { CostTracker } from '../cost-tracker.js';
+import { AIService, createAIService } from '../ai-service.js';
+import { ModelRouter, createModelRouter, CompletionParams } from '../model-router.js';
+import { CostTracker, createCostTracker } from '../cost-tracker.js';
 
 describe('AIService', () => {
   let provider: any;
@@ -18,9 +18,9 @@ describe('AIService', () => {
     streaming = {
       streamComplete: vi.fn()
     };
-    modelRouter = new ModelRouter();
-    costTracker = new CostTracker(modelRouter);
-    aiService = new AIService(provider, streaming, costTracker, modelRouter);
+    modelRouter = createModelRouter();
+    costTracker = createCostTracker(modelRouter);
+    aiService = createAIService(provider, streaming, costTracker, modelRouter);
   });
 
   it('complete retries on failure then succeeds with exponential backoff delay', async () => {

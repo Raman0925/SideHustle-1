@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { FilingClassifier } from '../filings.classifier.js';
+import { FilingClassifier, createFilingClassifier } from '../filings.classifier.js';
 
 describe('FilingClassifier', () => {
-  const classifier = new FilingClassifier();
+  const classifier = createFilingClassifier();
 
   it('classifies as MATERIAL HIGH when multiple material keywords match and no routine keywords match', () => {
     const result = classifier.classify('Award of contract for acquisition of stake', 'Corp Action');

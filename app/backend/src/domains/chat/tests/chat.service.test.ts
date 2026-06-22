@@ -1,5 +1,5 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { ChatService } from '../chat.service.js';
+import { ChatService, createChatService } from '../chat.service.js';
 import { Message } from '../../../utils/tokens/types.js';
 
 describe('ChatService', () => {
@@ -54,7 +54,7 @@ describe('ChatService', () => {
       streamComplete: vi.fn()
     };
 
-    service = new ChatService(
+    service = createChatService(
       retriever,
       assembler,
       tokenManager,

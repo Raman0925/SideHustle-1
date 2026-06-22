@@ -1,6 +1,6 @@
 import { vi, it, expect, beforeEach } from 'vitest';
 import { Chunker } from '../chunker.js';
-import { IngestionPipeline } from '../ingestion-pipeline.js';
+import { IngestionPipeline, createIngestionPipeline } from '../ingestion-pipeline.js';
 import { EmbeddingService } from '../../embeddings/embeddingService.js';
 import { VectorStore } from '../../vectorStore/vectorStore.js';
 
@@ -29,7 +29,7 @@ beforeEach(() => {
     deleteByDocumentId: vi.fn().mockResolvedValue(1)
   } as any;
 
-  pipeline = new IngestionPipeline(mockChunker, mockEmbeddingService, mockVectorStore);
+  pipeline = createIngestionPipeline(mockChunker, mockEmbeddingService, mockVectorStore);
 });
 
 it('IngestionPipeline calls embedBatch once regardless of chunk count', async () => {

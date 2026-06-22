@@ -4,14 +4,20 @@ export interface RerankResult {
   content: string;
 }
 
-export class Reranker {
-  constructor(private readonly apiKey: string) {
-    if (!apiKey) {
-      throw new Error("API key is required for Reranker");
-    }
+export interface Reranker {
+  rerank(
+    query: string,
+    documents: string[],
+    topN?: number
+  ): Promise<RerankResult[]>;
+}
+
+export function createReranker(apiKey: string): Reranker {
+  if (!apiKey) {
+    throw new Error("API key is required for Reranker");
   }
 
-  public async rerank(
+  async function rerank(
     query: string,
     documents: string[],
     topN?: number
@@ -21,7 +27,7 @@ export class Reranker {
     const response = await fetch("https://api.cohere.com/v1/rerank", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${this.apiKey}`,
+        "Authorization": `Bearer ${apiKey}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
@@ -54,4 +60,6 @@ export class Reranker {
       content: documents[r.index]
     }));
   }
+
+  return { rerank };
 }

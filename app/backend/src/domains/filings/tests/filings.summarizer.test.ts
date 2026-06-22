@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { FilingSummarizer } from '../filings.summarizer.js';
+import { FilingSummarizer, createFilingSummarizer } from '../filings.summarizer.js';
 import { extractStructured } from '../../../utils/ai/extract-structured.js';
 
 vi.mock('../../../utils/ai/extract-structured.js', () => {
@@ -19,7 +19,7 @@ describe('FilingSummarizer', () => {
   let mockFetch: any;
 
   beforeEach(() => {
-    summarizer = new FilingSummarizer('mock-api-key');
+    summarizer = createFilingSummarizer('mock-api-key');
     mockFetch = vi.fn();
     vi.stubGlobal('fetch', mockFetch);
   });

@@ -1,23 +1,28 @@
 import { BudgetMetrics, contextBudget, ValidationResult } from './types.js';
 import { encode, decode } from 'gpt-tokenizer';
 
-export class TokenBudgetManager {
-    constructor(private readonly budget: contextBudget) { }
+export interface TokenBudgetManager {
+    getTokenCount(text: string): number;
+    validateBudget(components: Record<string, string>): ValidationResult;
+    truncateToFit(text: string, maxTokens: number): string;
+    getMetrics(components: Record<string, string>): BudgetMetrics;
+}
 
-    public getTokenCount(text: string): number {
+export function createTokenBudgetManager(budget: contextBudget): TokenBudgetManager {
+    function getTokenCount(text: string): number {
         if (!text) return 0;
         return encode(text).length;
     }
 
-    public validateBudget(
+    function validateBudget(
         components: Record<string, string>
     ): ValidationResult {
 
         const violations = [];
 
         for (const [componentName, text] of Object.entries(components)) {
-            const used = this.getTokenCount(text);
-            const limit = this.budget[componentName as keyof contextBudget] ?? 0;
+            const used = getTokenCount(text);
+            const limit = budget[componentName as keyof contextBudget] ?? 0;
 
             if (used > limit) {
                 violations.push({
@@ -35,7 +40,7 @@ export class TokenBudgetManager {
         };
     }
     
-    public truncateToFit(text: string, maxTokens: number): string {
+    function truncateToFit(text: string, maxTokens: number): string {
         const tokens = encode(text);
 
         if (tokens.length <= maxTokens) return text;
@@ -43,15 +48,16 @@ export class TokenBudgetManager {
         const truncated = tokens.slice(0, maxTokens);
         return decode(truncated);
     }
-    public getMetrics(components: Record<string, string>): BudgetMetrics {
+
+    function getMetrics(components: Record<string, string>): BudgetMetrics {
         const utilization: Record<string, number> = {};
         let totalUsed = 0;
         let totalBudget = 0;
 
-        for (const [key, limit] of Object.entries(this.budget)) {
+        for (const [key, limit] of Object.entries(budget)) {
             totalBudget += limit;
             const text = components[key] ?? '';
-            const used = this.getTokenCount(text);
+            const used = getTokenCount(text);
             totalUsed += used;
 
             utilization[key] = limit > 0 ? Number(((used / limit) * 100).toFixed(2)) : 0;
@@ -66,4 +72,11 @@ export class TokenBudgetManager {
             overallUtilization
         };
     }
+
+    return {
+        getTokenCount,
+        validateBudget,
+        truncateToFit,
+        getMetrics
+    };
 }

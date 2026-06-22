@@ -1,5 +1,5 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { VectorStore } from '../vectorStore.js';
+import { VectorStore, createVectorStore } from '../vectorStore.js';
 import { InsertChunkParams, SearchParams } from '../types.js';
 
 describe('VectorStore', () => {
@@ -20,7 +20,7 @@ describe('VectorStore', () => {
       }
       return { type: 'helper', data: args[0] };
     });
-    store = new VectorStore(db);
+    store = createVectorStore(db);
   });
 
   it('should batch insert chunks in a single SQL statement and return IDs', async () => {

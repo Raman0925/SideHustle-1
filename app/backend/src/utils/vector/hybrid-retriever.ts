@@ -13,15 +13,24 @@ type FtsRow = {
   rank: number;
 };
 
-export class HybridRetriever {
-  constructor(
-    private readonly vectorStore: VectorStore,
-    private readonly embeddingService: EmbeddingService,
-    private readonly reranker: Reranker,
-    private readonly db: postgres.Sql
-  ) {}
+export interface HybridRetriever {
+  retrieve(
+    query: string,
+    options?: {
+      vectorCandidates?: number;
+      keywordCandidates?: number;
+      finalResults?: number;
+    }
+  ): Promise<SearchResult[]>;
+}
 
-  public async retrieve(
+export function createHybridRetriever(
+  vectorStore: VectorStore,
+  embeddingService: EmbeddingService,
+  reranker: Reranker,
+  db: postgres.Sql
+): HybridRetriever {
+  async function retrieve(
     query: string,
     options?: {
       vectorCandidates?: number;
@@ -34,14 +43,14 @@ export class HybridRetriever {
     const finalResults = options?.finalResults ?? 5;
 
     // 1. Vector Search
-    const queryEmbedding = await this.embeddingService.embed(query);
-    const vectorResults = await this.vectorStore.search({
+    const queryEmbedding = await embeddingService.embed(query);
+    const vectorResults = await vectorStore.search({
       embedding: queryEmbedding,
       limit: vectorLimit
     });
 
     // 2. Full Text Search
-    const ftsResults = await this.db<FtsRow[]>`
+    const ftsResults = await db<FtsRow[]>`
       SELECT id, document_id, content, metadata,
              ts_rank(to_tsvector('english', content), plainto_tsquery('english', ${query})) AS rank
       FROM document_chunks
@@ -67,7 +76,7 @@ export class HybridRetriever {
 
     // 4. Rerank the fused results
     const documentsToRerank = fused.map(f => f.item.content);
-    const reranked = await this.reranker.rerank(query, documentsToRerank);
+    const reranked = await reranker.rerank(query, documentsToRerank);
 
     // 5. Map back to SearchResult[] and return top N
     return reranked.slice(0, finalResults).map(r => {
@@ -78,4 +87,6 @@ export class HybridRetriever {
       };
     });
   }
+
+  return { retrieve };
 }

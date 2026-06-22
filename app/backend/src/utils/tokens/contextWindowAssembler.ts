@@ -1,47 +1,25 @@
 import { TokenBudgetManager } from './tokenBudgetManager.js';
 import { Message, AssembledContext, contextBudget } from './types.js';
 
-export class ContextWindowAssembler {
-    constructor(
-        private readonly budget: contextBudget,
-        private readonly tokenManager: TokenBudgetManager
-    ) { }
-
-    public getBudget(): contextBudget {
-        return this.budget;
-    }
-
-    public assemble(
+export interface ContextWindowAssembler {
+    getBudget(): contextBudget;
+    assemble(
         systemPrompt: string,
         history: Message[],
         currentMessage: string,
         documents: string[]
-    ): AssembledContext {
-        const systemTokens = this.tokenManager.getTokenCount(systemPrompt);
-        if (systemTokens > this.budget.systemPrompt) {
-            throw new Error(`System prompt exceeds budget: ${systemTokens} > ${this.budget.systemPrompt}`);
-        }
+    ): AssembledContext;
+}
 
-        const currentTokens = this.tokenManager.getTokenCount(currentMessage);
-        if (currentTokens > this.budget.userMessage) {
-            throw new Error(`Current message exceeds budget: ${currentTokens} > ${this.budget.userMessage}`);
-        }
-
-        const currentHistory = this.fitHistory(history, this.budget.conversationHistory, this.tokenManager);
-        const currentDocuments = this.fitDocuments(documents, this.budget.retrievedDocuments, this.tokenManager);
-        const totalTokens = systemTokens + currentHistory.used + currentTokens + currentDocuments.used;
-
-        return {
-            systemPrompt: systemPrompt,
-            messages: currentHistory.selected.concat({ role: 'user', content: currentMessage }),
-            totalTokens: totalTokens,
-            dropped: {
-                historyMessagesDropped: history.length - currentHistory.selected.length,
-                documentsSkipped: currentDocuments.skipped,
-            }
-        };
+export function createContextWindowAssembler(
+    budget: contextBudget,
+    tokenManager: TokenBudgetManager
+): ContextWindowAssembler {
+    function getBudget(): contextBudget {
+        return budget;
     }
-    private fitHistory(messages: Message[], budgetTokens: number, manager: TokenBudgetManager) {
+
+    function fitHistory(messages: Message[], budgetTokens: number, manager: TokenBudgetManager) {
         const selected: Message[] = [];
         let used = 0;
 
@@ -59,7 +37,7 @@ export class ContextWindowAssembler {
         return { selected, used };
     }
 
-    private fitDocuments(documents: string[], budgetTokens: number, manager: TokenBudgetManager) {
+    function fitDocuments(documents: string[], budgetTokens: number, manager: TokenBudgetManager) {
         const fitted: string[] = [];
         let used = 0;
         let skipped = 0;
@@ -79,4 +57,40 @@ export class ContextWindowAssembler {
 
         return { fitted, used, skipped };
     }
+
+    function assemble(
+        systemPrompt: string,
+        history: Message[],
+        currentMessage: string,
+        documents: string[]
+    ): AssembledContext {
+        const systemTokens = tokenManager.getTokenCount(systemPrompt);
+        if (systemTokens > budget.systemPrompt) {
+            throw new Error(`System prompt exceeds budget: ${systemTokens} > ${budget.systemPrompt}`);
+        }
+
+        const currentTokens = tokenManager.getTokenCount(currentMessage);
+        if (currentTokens > budget.userMessage) {
+            throw new Error(`Current message exceeds budget: ${currentTokens} > ${budget.userMessage}`);
+        }
+
+        const currentHistory = fitHistory(history, budget.conversationHistory, tokenManager);
+        const currentDocuments = fitDocuments(documents, budget.retrievedDocuments, tokenManager);
+        const totalTokens = systemTokens + currentHistory.used + currentTokens + currentDocuments.used;
+
+        return {
+            systemPrompt: systemPrompt,
+            messages: currentHistory.selected.concat({ role: 'user', content: currentMessage }),
+            totalTokens: totalTokens,
+            dropped: {
+                historyMessagesDropped: history.length - currentHistory.selected.length,
+                documentsSkipped: currentDocuments.skipped,
+            }
+        };
+    }
+
+    return {
+        getBudget,
+        assemble
+    };
 }   

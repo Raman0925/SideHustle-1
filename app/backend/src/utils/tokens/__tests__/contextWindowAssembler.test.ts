@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { TokenBudgetManager } from '../tokenBudgetManager.js';
-import { ContextWindowAssembler } from '../contextWindowAssembler.js';
+import { TokenBudgetManager, createTokenBudgetManager } from '../tokenBudgetManager.js';
+import { ContextWindowAssembler, createContextWindowAssembler } from '../contextWindowAssembler.js';
 import { contextBudget, Message } from '../types.js';
 
 describe('ContextWindowAssembler', () => {
@@ -14,8 +14,8 @@ describe('ContextWindowAssembler', () => {
       responseBudget: 0
     };
 
-    const tokenManager = new TokenBudgetManager(mockBudget);
-    const assembler = new ContextWindowAssembler(mockBudget, tokenManager);
+    const tokenManager = createTokenBudgetManager(mockBudget);
+    const assembler = createContextWindowAssembler(mockBudget, tokenManager);
 
     it('should successfully assemble context when all inputs are within budget', () => {
       const systemPrompt = 'Short prompt';
@@ -47,8 +47,8 @@ describe('ContextWindowAssembler', () => {
         userMessage: 30,
         responseBudget: 0
       };
-      const tokenManager = new TokenBudgetManager(mockBudget);
-      const assembler = new ContextWindowAssembler(mockBudget, tokenManager);
+      const tokenManager = createTokenBudgetManager(mockBudget);
+      const assembler = createContextWindowAssembler(mockBudget, tokenManager);
 
       const systemPrompt = 'Helper';
       const history: Message[] = [
@@ -74,8 +74,8 @@ describe('ContextWindowAssembler', () => {
         userMessage: 30,
         responseBudget: 0
       };
-      const tokenManager = new TokenBudgetManager(mockBudget);
-      const assembler = new ContextWindowAssembler(mockBudget, tokenManager);
+      const tokenManager = createTokenBudgetManager(mockBudget);
+      const assembler = createContextWindowAssembler(mockBudget, tokenManager);
 
       const systemPrompt = 'Helper';
       const history: Message[] = [];
@@ -100,8 +100,8 @@ describe('ContextWindowAssembler', () => {
         userMessage: 30,
         responseBudget: 0
       };
-      const tokenManager = new TokenBudgetManager(mockBudget);
-      const assembler = new ContextWindowAssembler(mockBudget, tokenManager);
+      const tokenManager = createTokenBudgetManager(mockBudget);
+      const assembler = createContextWindowAssembler(mockBudget, tokenManager);
 
       const systemPrompt = 'This is a long system prompt that will easily exceed five tokens.';
       const history: Message[] = [];
@@ -122,8 +122,8 @@ describe('ContextWindowAssembler', () => {
         userMessage: 5,
         responseBudget: 0
       };
-      const tokenManager = new TokenBudgetManager(mockBudget);
-      const assembler = new ContextWindowAssembler(mockBudget, tokenManager);
+      const tokenManager = createTokenBudgetManager(mockBudget);
+      const assembler = createContextWindowAssembler(mockBudget, tokenManager);
 
       const systemPrompt = 'Helper';
       const history: Message[] = [];

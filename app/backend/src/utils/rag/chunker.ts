@@ -12,20 +12,20 @@ export interface Chunk {
   tokenCount: number;
 }
 
-export class Chunker {
-  private readonly options: ChunkOptions;
+export interface Chunker {
+  chunk(text: string): Chunk[];
+}
 
-  constructor(
-    private readonly tokenManager: TokenBudgetManager,
-    options?: Partial<ChunkOptions>
-  ) {
-    this.options = {
-      maxTokens: options?.maxTokens ?? 512,
-      overlapTokens: options?.overlapTokens ?? 50
-    };
-  }
+export function createChunker(
+  tokenManager: TokenBudgetManager,
+  options?: Partial<ChunkOptions>
+): Chunker {
+  const finalOptions = {
+    maxTokens: options?.maxTokens ?? 512,
+    overlapTokens: options?.overlapTokens ?? 50
+  };
 
-  public chunk(text: string): Chunk[] {
+  function chunk(text: string): Chunk[] {
     if (!text) return [];
 
     // 1. Split into paragraphs with exact position tracking
@@ -50,8 +50,8 @@ export class Chunker {
     // 2. Sentence splitting for large paragraphs
     const segments: { text: string; start: number; end: number }[] = [];
     for (const para of paragraphs) {
-      const paraTokens = this.tokenManager.getTokenCount(para.text);
-      if (paraTokens <= this.options.maxTokens) {
+      const paraTokens = tokenManager.getTokenCount(para.text);
+      if (paraTokens <= finalOptions.maxTokens) {
         segments.push(para);
       } else {
         const rawSentences = para.text.split(/([.!?]\s+)/);
@@ -83,8 +83,8 @@ export class Chunker {
     // 3. Pre-accumulate words into sub-sentence chunks to avoid creating tiny single-word segments
     const finalSegments: { text: string; start: number; end: number }[] = [];
     for (const seg of segments) {
-      const segTokens = this.tokenManager.getTokenCount(seg.text);
-      if (segTokens <= this.options.maxTokens) {
+      const segTokens = tokenManager.getTokenCount(seg.text);
+      if (segTokens <= finalOptions.maxTokens) {
         finalSegments.push(seg);
       } else {
         const words = seg.text.split(/(\s+)/);
@@ -99,9 +99,9 @@ export class Chunker {
 
           if (wordText.length > 0) {
             const candidate = currentGroup + wordText;
-            const candidateTokens = this.tokenManager.getTokenCount(candidate);
+            const candidateTokens = tokenManager.getTokenCount(candidate);
 
-            if (candidateTokens > this.options.maxTokens) {
+            if (candidateTokens > finalOptions.maxTokens) {
               if (currentGroup.length > 0) {
                 finalSegments.push({
                   text: currentGroup,
@@ -141,9 +141,9 @@ export class Chunker {
       while (j < finalSegments.length) {
         const nextSegment = finalSegments[j];
         const candidateText = currentText ? currentText + nextSegment.text : nextSegment.text;
-        const candidateTokens = this.tokenManager.getTokenCount(candidateText);
+        const candidateTokens = tokenManager.getTokenCount(candidateText);
 
-        if (candidateTokens > this.options.maxTokens) {
+        if (candidateTokens > finalOptions.maxTokens) {
           break;
         }
 
@@ -156,7 +156,7 @@ export class Chunker {
         text: currentText,
         startChar,
         endChar,
-        tokenCount: this.tokenManager.getTokenCount(currentText)
+        tokenCount: tokenManager.getTokenCount(currentText)
       });
 
       if (j === finalSegments.length) {
@@ -169,7 +169,7 @@ export class Chunker {
       while (k >= i) {
         const segmentText = finalSegments[k].text;
         const candidateOverlap = overlapText ? segmentText + overlapText : segmentText;
-        if (this.tokenManager.getTokenCount(candidateOverlap) > this.options.overlapTokens) {
+        if (tokenManager.getTokenCount(candidateOverlap) > finalOptions.overlapTokens) {
           break;
         }
         overlapText = candidateOverlap;
@@ -186,4 +186,6 @@ export class Chunker {
 
     return chunks;
   }
+
+  return { chunk };
 }
