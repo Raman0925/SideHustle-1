@@ -51,6 +51,13 @@ export class ModelRouter {
     extraction: {
       cheap: MODELS.haiku,
       premium: MODELS.sonnet
+    },
+    // Filing pipeline:
+    // - cheap  = Haiku  → WATCH tier classification assist (fast, low cost)
+    // - premium = Sonnet → MATERIAL filing summarization (quality matters)
+    filing: {
+      cheap: MODELS.haiku,
+      premium: MODELS.sonnet
     }
   };
 

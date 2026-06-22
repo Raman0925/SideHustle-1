@@ -6,6 +6,8 @@ import { requestContextMiddleware } from '#middlewares/requestContext.middleware
 import authMiddleware from '#middlewares/auth.middleware.js';
 import userController from '#domains/user/user.controller.js';
 import chatController from '#domains/chat/chat.controller.js';
+import filingsController from '#domains/filings/filings.controller.js';
+import { startFilingsPolling, stopFilingsPolling } from '#domains/filings/filings.service.js';
 import fastifySSE from '@fastify/sse';
 import loggerConfig from '#config/loggerConfig.js';
 import swagger from '@fastify/swagger';
@@ -35,6 +37,7 @@ fastify.addHook('preHandler', authMiddleware);
 // Register domain routes
 fastify.register(userController, { prefix: '/auth' });
 fastify.register(chatController, { prefix: '/chat' });
+fastify.register(filingsController, { prefix: '/filings' });
 
 // Register global error handler
 fastify.setErrorHandler(errorHandler);
@@ -43,10 +46,26 @@ const startServer = async () => {
   try {
     await fastify.listen({ port: Number(process.env.PORT || 3000), host: '0.0.0.0' });
     fastify.log.info(`Server running on http://localhost:${process.env.PORT || 3000}`);
+
+    // Start NSE + BSE polling after server is up
+    // Poll every 90s — respectful to exchanges, still fast enough to catch filings
+    startFilingsPolling(90_000);
+    fastify.log.info('Filings poller started (NSE + BSE, 90s interval)');
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);
   }
 };
+
+// Graceful shutdown — stop polling before killing the process
+const shutdown = async () => {
+  fastify.log.info('Shutting down...');
+  stopFilingsPolling();
+  await fastify.close();
+  process.exit(0);
+};
+
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
 
 startServer();

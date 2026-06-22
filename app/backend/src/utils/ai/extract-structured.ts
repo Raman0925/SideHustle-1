@@ -7,7 +7,8 @@ import { ToolDefinition } from './tool-runner.js';
 export async function extractStructured<T>(
   input: string,
   toolDefinition: ToolDefinition,
-  apiKey: string
+  apiKey: string,
+  model: string = 'claude-3-5-haiku-20241022'
 ): Promise<T> {
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -17,7 +18,7 @@ export async function extractStructured<T>(
       'content-type': 'application/json'
     },
     body: JSON.stringify({
-      model: 'claude-3-5-haiku-20241022',
+      model,
       max_tokens: 4096,
       messages: [
         {
