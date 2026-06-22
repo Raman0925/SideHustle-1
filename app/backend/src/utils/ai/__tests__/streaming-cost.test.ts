@@ -1,15 +1,15 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { ModelRouter } from '../model-router.js';
-import { CostTracker, CostMetrics } from '../cost-tracker.js';
-import { StreamingProvider } from '../streaming-provider.js';
+import { ModelRouter, createModelRouter } from '../model-router.js';
+import { CostTracker, createCostTracker, CostMetrics } from '../cost-tracker.js';
+import { StreamingProvider, createStreamingProvider } from '../streaming-provider.js';
 
 describe('CostTracker', () => {
   let router: ModelRouter;
   let tracker: CostTracker;
 
   beforeEach(() => {
-    router = new ModelRouter();
-    tracker = new CostTracker(router);
+    router = createModelRouter();
+    tracker = createCostTracker(router);
   });
 
   it('CostTracker.track calculates cost correctly', () => {
@@ -124,7 +124,7 @@ describe('StreamingProvider', () => {
       body: mockStream
     });
 
-    const provider = new StreamingProvider(apiKey);
+    const provider = createStreamingProvider(apiKey);
     const chunks: string[] = [];
     let finalUsage: { inputTokens: number; outputTokens: number } | null = null;
 
@@ -166,7 +166,7 @@ describe('StreamingProvider', () => {
       text: async () => 'Error payload'
     });
 
-    const provider = new StreamingProvider(apiKey);
+    const provider = createStreamingProvider(apiKey);
     await expect(
       provider.streamComplete(
         {

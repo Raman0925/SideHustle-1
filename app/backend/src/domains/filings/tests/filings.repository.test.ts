@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { FilingsRepository } from '../filings.repository.js';
+import { FilingsRepository, createFilingsRepository } from '../filings.repository.js';
 import postgres from 'postgres';
 
 describe('FilingsRepository', () => {
@@ -8,7 +8,7 @@ describe('FilingsRepository', () => {
 
   beforeEach(() => {
     mockDb = vi.fn() as unknown as postgres.Sql;
-    repository = new FilingsRepository(mockDb);
+    repository = createFilingsRepository(mockDb);
   });
 
   it('existsByHash returns true if count > 0', async () => {

@@ -1,12 +1,12 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { ModelRouter, ModelConfig } from '../model-router.js';
-import { AnthropicProvider } from '../anthropic-provider.js';
+import { ModelRouter, createModelRouter, ModelConfig } from '../model-router.js';
+import { AnthropicProvider, createAnthropicProvider } from '../anthropic-provider.js';
 
 describe('ModelRouter', () => {
   let router: ModelRouter;
 
   beforeEach(() => {
-    router = new ModelRouter();
+    router = createModelRouter();
   });
 
   it('getModel returns correct model for task and tier', () => {
@@ -75,7 +75,7 @@ describe('AnthropicProvider', () => {
       })
     });
 
-    const provider = new AnthropicProvider(apiKey);
+    const provider = createAnthropicProvider(apiKey);
     const result = await provider.complete({
       model: 'claude-haiku-4-5',
       messages: [{ role: 'user', content: 'hi' }],

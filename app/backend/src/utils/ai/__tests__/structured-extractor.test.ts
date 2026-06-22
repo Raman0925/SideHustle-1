@@ -1,5 +1,5 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { StructuredExtractor, TicketSchema, ContactSchema } from '../structured-extractor.js';
+import { StructuredExtractor, createStructuredExtractor, TicketSchema, ContactSchema } from '../structured-extractor.js';
 
 describe('StructuredExtractor', () => {
   const apiKey = 'test-api-key';
@@ -33,7 +33,7 @@ describe('StructuredExtractor', () => {
       })
     });
 
-    const extractor = new StructuredExtractor(apiKey);
+    const extractor = createStructuredExtractor(apiKey);
     const result = await extractor.extract(
       TicketSchema,
       'Classify the support ticket.',
@@ -71,7 +71,7 @@ describe('StructuredExtractor', () => {
       })
     });
 
-    const extractor = new StructuredExtractor(apiKey);
+    const extractor = createStructuredExtractor(apiKey);
     await expect(
       extractor.extract(
         TicketSchema,
@@ -101,7 +101,7 @@ describe('StructuredExtractor', () => {
       })
     });
 
-    const extractor = new StructuredExtractor(apiKey);
+    const extractor = createStructuredExtractor(apiKey);
     await expect(
       extractor.extract(
         TicketSchema,
@@ -151,7 +151,7 @@ describe('StructuredExtractor', () => {
         })
       });
 
-    const extractor = new StructuredExtractor(apiKey);
+    const extractor = createStructuredExtractor(apiKey);
     const result = await extractor.extractWithRetry(
       TicketSchema,
       'Classify the support ticket.',
@@ -208,7 +208,7 @@ describe('StructuredExtractor', () => {
       })
     });
 
-    const extractor = new StructuredExtractor(apiKey);
+    const extractor = createStructuredExtractor(apiKey);
     const result = await extractor.extract(
       ContactSchema,
       'Extract contact information.',

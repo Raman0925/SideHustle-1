@@ -2,28 +2,41 @@ import { ModelRouter, CompletionParams, CompletionResult, ModelProvider } from '
 import { StreamingProvider } from './streaming-provider.js';
 import { CostTracker, CostMetrics } from './cost-tracker.js';
 
-export class AIService {
-  private readonly trackedCosts: CostMetrics[] = [];
+export interface AIService {
+  getTrackedCosts(): CostMetrics[];
+  complete(
+    params: CompletionParams,
+    metadata: { feature: string; task: string; tier: string },
+    options?: { maxRetries?: number; initialDelayMs?: number }
+  ): Promise<CompletionResult & { costMetrics: CostMetrics }>;
+  stream(
+    params: CompletionParams,
+    metadata: { feature: string; task: string; tier: string },
+    onChunk: (text: string) => void,
+    onDone: (usage: { inputTokens: number; outputTokens: number }) => void
+  ): Promise<void>;
+}
 
-  constructor(
-    private readonly provider: ModelProvider,
-    private readonly streaming: StreamingProvider,
-    private readonly costTracker: CostTracker,
-    private readonly modelRouter: ModelRouter
-  ) {}
+export function createAIService(
+  provider: ModelProvider,
+  streaming: StreamingProvider,
+  costTracker: CostTracker,
+  modelRouter: ModelRouter
+): AIService {
+  const trackedCosts: CostMetrics[] = [];
 
   /**
    * Retrieves all tracked costs recorded during the lifecycle of this service.
    */
-  public getTrackedCosts(): CostMetrics[] {
-    return this.trackedCosts;
+  function getTrackedCosts(): CostMetrics[] {
+    return trackedCosts;
   }
 
   /**
    * Checks whether the error is non-retryable.
    * Invalid API keys and HTTP 400 Bad Requests are not retried.
    */
-  private isNonRetryableError(error: any): boolean {
+  function isNonRetryableError(error: any): boolean {
     const msg = error?.message || String(error);
     
     // HTTP 400 Bad Request
@@ -48,7 +61,7 @@ export class AIService {
    * Generates a model completion.
    * Automatically retries on temporary failure with exponential backoff.
    */
-  public async complete(
+  async function complete(
     params: CompletionParams,
     metadata: { feature: string; task: string; tier: string },
     options: { maxRetries?: number; initialDelayMs?: number } = {}
@@ -59,16 +72,16 @@ export class AIService {
     let attempt = 0;
     while (true) {
       try {
-        const result = await this.provider.complete(params);
+        const result = await provider.complete(params);
         
         // Track cost
-        const costMetrics = this.costTracker.track(
+        const costMetrics = costTracker.track(
           metadata.feature,
           metadata.task,
           metadata.tier,
           result.usage
         );
-        this.trackedCosts.push(costMetrics);
+        trackedCosts.push(costMetrics);
         
         return {
           ...result,
@@ -76,7 +89,7 @@ export class AIService {
         };
       } catch (err: any) {
         attempt++;
-        if (attempt > maxRetries || this.isNonRetryableError(err)) {
+        if (attempt > maxRetries || isNonRetryableError(err)) {
           throw err;
         }
         
@@ -91,28 +104,34 @@ export class AIService {
    * Delegates streaming completion.
    * Tracks final token costs when the stream finishes.
    */
-  public async stream(
+  async function stream(
     params: CompletionParams,
     metadata: { feature: string; task: string; tier: string },
     onChunk: (text: string) => void,
     onDone: (usage: { inputTokens: number; outputTokens: number }) => void
   ): Promise<void> {
-    await this.streaming.streamComplete(
+    await streaming.streamComplete(
       params,
       onChunk,
       (usage) => {
         // Track cost
-        const costMetrics = this.costTracker.track(
+        const costMetrics = costTracker.track(
           metadata.feature,
           metadata.task,
           metadata.tier,
           usage
         );
-        this.trackedCosts.push(costMetrics);
+        trackedCosts.push(costMetrics);
         
         // Delegate to original callback
         onDone(usage);
       }
     );
   }
+
+  return {
+    getTrackedCosts,
+    complete,
+    stream
+  };
 }

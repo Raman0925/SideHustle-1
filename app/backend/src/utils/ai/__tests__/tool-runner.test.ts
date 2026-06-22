@@ -1,5 +1,5 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { ToolRunner, Message } from '../tool-runner.js';
+import { ToolRunner, createToolRunner, Message } from '../tool-runner.js';
 import { getOrderStatus, getCustomerAccount, createSupportTicket } from '../../../domains/support/tools.js';
 
 describe('ToolRunner', () => {
@@ -15,7 +15,7 @@ describe('ToolRunner', () => {
   });
 
   it('getDefinitions returns all registered tool definitions', () => {
-    const runner = new ToolRunner();
+    const runner = createToolRunner();
     runner.register(getOrderStatus);
     runner.register(getCustomerAccount);
 
@@ -26,7 +26,7 @@ describe('ToolRunner', () => {
   });
 
   it('Tool loop executes tool and sends result back to model', async () => {
-    const runner = new ToolRunner();
+    const runner = createToolRunner();
     runner.register(getOrderStatus);
 
     // Call 1: model requests to use the getOrderStatus tool
@@ -101,7 +101,7 @@ describe('ToolRunner', () => {
   });
 
   it('Tool loop throws after MAX_ITERATIONS', async () => {
-    const runner = new ToolRunner();
+    const runner = createToolRunner();
     runner.register(getOrderStatus);
 
     // Fetch always returns tool_use (infinite loop)

@@ -22,20 +22,28 @@ export interface DailyCostReport {
   }>;
 }
 
-export class CostTracker {
-  constructor(private readonly modelRouter: ModelRouter) {}
+export interface CostTracker {
+  track(
+    feature: string,
+    task: string,
+    tier: string,
+    usage: { inputTokens: number; outputTokens: number }
+  ): CostMetrics;
+  summarize(metrics: CostMetrics[]): DailyCostReport;
+}
 
+export function createCostTracker(modelRouter: ModelRouter): CostTracker {
   /**
    * Calculates the cost based on token usage and configuration, returning a CostMetrics object.
    */
-  public track(
+  function track(
     feature: string,
     task: string,
     tier: string,
     usage: { inputTokens: number; outputTokens: number }
   ): CostMetrics {
-    const config = this.modelRouter.getModel(task, tier);
-    const cost = this.modelRouter.estimateCost(config, usage.inputTokens, usage.outputTokens);
+    const config = modelRouter.getModel(task, tier);
+    const cost = modelRouter.estimateCost(config, usage.inputTokens, usage.outputTokens);
     return {
       feature,
       task,
@@ -49,7 +57,7 @@ export class CostTracker {
   /**
    * Aggregates cost metrics into a daily summary report.
    */
-  public summarize(metrics: CostMetrics[]): DailyCostReport {
+  function summarize(metrics: CostMetrics[]): DailyCostReport {
     let totalCost = 0;
     let input = 0;
     let output = 0;
@@ -77,4 +85,9 @@ export class CostTracker {
       byFeature
     };
   }
+
+  return {
+    track,
+    summarize
+  };
 }

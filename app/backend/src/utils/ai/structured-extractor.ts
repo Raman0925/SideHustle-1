@@ -14,13 +14,25 @@ function stripMarkdown(text: string): string {
   return text.trim();
 }
 
-export class StructuredExtractor {
-  constructor(private readonly apiKey: string) { }
+export interface StructuredExtractor {
+  extract<T>(
+    schema: z.ZodSchema<T>,
+    systemPrompt: string,
+    userInput: string
+  ): Promise<T>;
+  extractWithRetry<T>(
+    schema: z.ZodSchema<T>,
+    systemPrompt: string,
+    userInput: string,
+    maxRetries?: number
+  ): Promise<T>;
+}
 
+export function createStructuredExtractor(apiKey: string): StructuredExtractor {
   /**
    * Helper to enrich the system prompt with Zod schema instructions.
    */
-  private buildEnrichedSystemPrompt(systemPrompt: string, schemaDescription: string): string {
+  function buildEnrichedSystemPrompt(systemPrompt: string, schemaDescription: string): string {
     return `${systemPrompt}
 
 You MUST return a JSON object that strictly adheres to this schema definition:
@@ -38,7 +50,7 @@ Rules:
   /**
    * Performs the actual Anthropic messages call, response parsing, and validation.
    */
-  private async executeExtract<T>(
+  async function executeExtract<T>(
     schema: z.ZodSchema<T>,
     enrichedSystemPrompt: string,
     messages: Array<{ role: 'user' | 'assistant'; content: string }>
@@ -48,7 +60,7 @@ Rules:
       response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
-          'x-api-key': this.apiKey,
+          'x-api-key': apiKey,
           'anthropic-version': '2023-06-01',
           'content-type': 'application/json'
         },
@@ -122,19 +134,19 @@ Rules:
    * Calls claude-haiku-4-5 to extract structured data matching the zod schema.
    * Strips markdown, parses JSON, validates, and throws descriptive errors on failure.
    */
-  public async extract<T>(
+  async function extract<T>(
     schema: z.ZodSchema<T>,
     systemPrompt: string,
     userInput: string
   ): Promise<T> {
-    if (!this.apiKey) {
+    if (!apiKey) {
       throw new Error('Anthropic API key is not defined');
     }
 
     const schemaDescription = getZodSchemaDescription(schema);
-    const enrichedSystemPrompt = this.buildEnrichedSystemPrompt(systemPrompt, schemaDescription);
+    const enrichedSystemPrompt = buildEnrichedSystemPrompt(systemPrompt, schemaDescription);
 
-    const result = await this.executeExtract(schema, enrichedSystemPrompt, [
+    const result = await executeExtract(schema, enrichedSystemPrompt, [
       { role: 'user', content: userInput }
     ]);
 
@@ -148,18 +160,18 @@ Rules:
   /**
    * Calls extract, retries with error feedback on failure using message history.
    */
-  public async extractWithRetry<T>(
+  async function extractWithRetry<T>(
     schema: z.ZodSchema<T>,
     systemPrompt: string,
     userInput: string,
     maxRetries: number = 3
   ): Promise<T> {
-    if (!this.apiKey) {
+    if (!apiKey) {
       throw new Error('Anthropic API key is not defined');
     }
 
     const schemaDescription = getZodSchemaDescription(schema);
-    const enrichedSystemPrompt = this.buildEnrichedSystemPrompt(systemPrompt, schemaDescription);
+    const enrichedSystemPrompt = buildEnrichedSystemPrompt(systemPrompt, schemaDescription);
 
     const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [
       { role: 'user', content: userInput }
@@ -168,7 +180,7 @@ Rules:
     let attempts = 0;
 
     while (attempts < maxRetries) {
-      const result = await this.executeExtract(schema, enrichedSystemPrompt, messages);
+      const result = await executeExtract(schema, enrichedSystemPrompt, messages);
 
       if (!result.error) {
         return result.data!;
@@ -192,6 +204,11 @@ Rules:
 
     throw new Error('Unreachable');
   }
+
+  return {
+    extract,
+    extractWithRetry
+  };
 }
 
 // Schema 1: Support ticket classification

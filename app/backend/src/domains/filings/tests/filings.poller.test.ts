@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { NSEPoller, BSEPoller } from '../filings.poller.js';
+import { NSEPoller, BSEPoller, createNSEPoller, createBSEPoller } from '../filings.poller.js';
 
 describe('NSEPoller', () => {
   let poller: NSEPoller;
   let mockFetch: any;
 
   beforeEach(() => {
-    poller = new NSEPoller();
+    poller = createNSEPoller();
     mockFetch = vi.fn();
     vi.stubGlobal('fetch', mockFetch);
     vi.stubGlobal('setTimeout', (fn: any) => {
@@ -147,7 +147,7 @@ describe('BSEPoller', () => {
   let mockFetch: any;
 
   beforeEach(() => {
-    poller = new BSEPoller();
+    poller = createBSEPoller();
     mockFetch = vi.fn();
     vi.stubGlobal('fetch', mockFetch);
     vi.stubGlobal('setTimeout', (fn: any) => {

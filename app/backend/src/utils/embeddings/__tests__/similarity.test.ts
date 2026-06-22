@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { cosineSimilarity } from '../similarity.js';
-import { EmbeddingService } from '../embeddingService.js';
+import { EmbeddingService, createEmbeddingService } from '../embeddingService.js';
 
 describe('cosineSimilarity', () => {
   it('identical vectors return 1.0', () => {
@@ -24,7 +24,7 @@ describe('cosineSimilarity', () => {
 
 describe('EmbeddingService.findMostSimilar', () => {
   it('returns index of most similar candidate', () => {
-    const service = new EmbeddingService('text-embedding-ada-002');
+    const service = createEmbeddingService('text-embedding-ada-002');
     const query = [1, 0, 0];
     const candidates = [
       [0, 1, 0],
@@ -37,7 +37,7 @@ describe('EmbeddingService.findMostSimilar', () => {
   });
 
   it('throws on empty candidates', () => {
-    const service = new EmbeddingService('text-embedding-ada-002');
+    const service = createEmbeddingService('text-embedding-ada-002');
     const query = [1, 0, 0];
     const candidates: number[][] = [];
     expect(() => service.findMostSimilar(query, candidates)).toThrow();

@@ -1,8 +1,8 @@
 import { FilingSummary, FilingCategory, ImpactDirection } from './filings.types.js';
 import { extractStructured } from '../../utils/ai/extract-structured.js';
-import { TokenBudgetManager } from '../../utils/tokens/tokenBudgetManager.js';
-import { ModelRouter } from '../../utils/ai/model-router.js';
-import { CostTracker } from '../../utils/ai/cost-tracker.js';
+import { TokenBudgetManager, createTokenBudgetManager } from '../../utils/tokens/tokenBudgetManager.js';
+import { ModelRouter, createModelRouter } from '../../utils/ai/model-router.js';
+import { CostTracker, createCostTracker } from '../../utils/ai/cost-tracker.js';
 import { contextBudget } from '../../utils/tokens/types.js';
 
 // ─── Tool definition for structured LLM extraction ────────────────────────────
@@ -76,19 +76,22 @@ Your job is to read stock exchange filings and extract structured market-moving 
 Be precise, factual, and concise. Focus on what matters to investors.
 Always use the provided tool — never respond in plain text.`;
 
-export class FilingSummarizer {
-  private readonly tokenManager: TokenBudgetManager;
-  private readonly modelRouter: ModelRouter;
-  private readonly costTracker: CostTracker;
+export interface FilingSummarizer {
+  summarize(
+    subject: string,
+    pdfUrl: string,
+    exchange: string,
+    companyName: string
+  ): Promise<FilingSummary>;
+}
 
-  constructor(private readonly apiKey: string) {
-    this.tokenManager = new TokenBudgetManager(FILING_SUMMARY_BUDGET);
-    this.modelRouter = new ModelRouter();
-    this.costTracker = new CostTracker(this.modelRouter);
-  }
+export function createFilingSummarizer(apiKey: string): FilingSummarizer {
+  const tokenManager = createTokenBudgetManager(FILING_SUMMARY_BUDGET);
+  const modelRouter = createModelRouter();
+  const costTracker = createCostTracker(modelRouter);
 
   // ── Fetch and extract text from a PDF URL ─────────────────────────────────
-  private async fetchPdfText(pdfUrl: string): Promise<string> {
+  async function fetchPdfText(pdfUrl: string): Promise<string> {
     if (!pdfUrl) return '';
 
     try {
@@ -136,9 +139,9 @@ export class FilingSummarizer {
   }
 
   // ── Build the prompt from subject + PDF text ───────────────────────────────
-  private buildPrompt(subject: string, pdfText: string): string {
+  function buildPrompt(subject: string, pdfText: string): string {
     // Truncate PDF text to fit token budget
-    const truncated = this.tokenManager.truncateToFit(pdfText, 5000);
+    const truncated = tokenManager.truncateToFit(pdfText, 5000);
 
     if (truncated) {
       return `Analyze this NSE/BSE filing:\n\nTitle: ${subject}\n\nFiling Content:\n${truncated}`;
@@ -149,37 +152,37 @@ export class FilingSummarizer {
   }
 
   // ── Main summarize method ──────────────────────────────────────────────────
-  public async summarize(
+  async function summarize(
     subject: string,
     pdfUrl: string,
     exchange: string,
     companyName: string
   ): Promise<FilingSummary> {
     // 1. Fetch PDF text (gracefully degrades to empty string)
-    const pdfText = await this.fetchPdfText(pdfUrl);
+    const pdfText = await fetchPdfText(pdfUrl);
 
     // 2. Build prompt
-    const prompt = this.buildPrompt(
+    const prompt = buildPrompt(
       `[${exchange}] ${companyName}: ${subject}`,
       pdfText
     );
 
     // 3. Get model — use Sonnet for material filings (this method is only called for MATERIAL)
-    const modelConfig = this.modelRouter.getModel('filing', 'premium');
+    const modelConfig = modelRouter.getModel('filing', 'premium');
 
     // 4. Call extractStructured with forced tool choice — your existing utility
     const result = await extractStructured<SummaryToolOutput>(
       prompt,
       FILING_SUMMARY_TOOL,
-      this.apiKey,
+      apiKey,
       modelConfig.modelName
     );
 
     // 5. Estimate cost (we don't have exact token count from extractStructured,
     //    so we estimate from prompt length)
-    const estimatedInputTokens = this.tokenManager.getTokenCount(prompt + SYSTEM_PROMPT);
+    const estimatedInputTokens = tokenManager.getTokenCount(prompt + SYSTEM_PROMPT);
     const estimatedOutputTokens = 300; // typical structured output size
-    const costMetrics = this.costTracker.track('filings', 'filing', 'premium', {
+    const costMetrics = costTracker.track('filings', 'filing', 'premium', {
       inputTokens: estimatedInputTokens,
       outputTokens: estimatedOutputTokens,
     });
@@ -197,4 +200,6 @@ export class FilingSummarizer {
       costUsd: costMetrics.cost,
     };
   }
+
+  return { summarize };
 }

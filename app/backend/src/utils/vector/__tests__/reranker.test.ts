@@ -1,5 +1,5 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { Reranker } from '../reranker.js';
+import { Reranker, createReranker } from '../reranker.js';
 
 describe('Reranker', () => {
   const mockFetch = vi.fn();
@@ -13,7 +13,7 @@ describe('Reranker', () => {
   });
 
   it('should initialize successfully and fail on empty api key', () => {
-    expect(() => new Reranker('')).toThrowError('API key is required');
+    expect(() => createReranker('')).toThrowError('API key is required');
   });
 
   it('calls Cohere API and returns results sorted by relevance', async () => {
@@ -27,7 +27,7 @@ describe('Reranker', () => {
       })
     }));
 
-    const reranker = new Reranker('test-key');
+    const reranker = createReranker('test-key');
     const results = await reranker.rerank(
       'how do I cancel',
       ['manage account', 'cancel subscription']
@@ -48,7 +48,7 @@ describe('Reranker', () => {
       })
     });
 
-    const reranker = new Reranker('cohere-api-key');
+    const reranker = createReranker('cohere-api-key');
     const query = 'AI frameworks';
     const documents = ['Doc A: TensorFlow is a library.', 'Doc B: PyTorch is a framework.'];
 
@@ -82,7 +82,7 @@ describe('Reranker', () => {
   });
 
   it('should return empty list immediately on empty documents input', async () => {
-    const reranker = new Reranker('cohere-api-key');
+    const reranker = createReranker('cohere-api-key');
     const result = await reranker.rerank('query', []);
     expect(result).toEqual([]);
     expect(mockFetch).not.toHaveBeenCalled();

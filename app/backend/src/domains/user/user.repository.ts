@@ -4,28 +4,24 @@ import pg from 'pg';
  * User Repository
  * Handles direct database operations on the public.profiles table.
  */
-export class UserRepository {
-  private readonly db: pg.Pool;
+export interface UserRepository {
+  findById(id: string): Promise<any>;
+  updateProfile(id: string, data: { fullName: string | null; avatarUrl: string | null }): Promise<any>;
+}
 
-  /**
-   * @param {import('pg').Pool} pgPool
-   */
-  constructor(pgPool: pg.Pool) {
-    this.db = pgPool;
-  }
-
+export function createUserRepository(pgPool: pg.Pool): UserRepository {
   /**
    * Find a user profile by UUID
    * @param {string} id
    * @returns {Promise<object|null>}
    */
-  async findById(id: string): Promise<any> {
+  async function findById(id: string): Promise<any> {
     const query = `
       SELECT id, email, full_name, avatar_url, updated_at 
       FROM public.profiles 
       WHERE id = $1
     `;
-    const result = await this.db.query(query, [id]);
+    const result = await pgPool.query(query, [id]);
     return result.rows[0] || null;
   }
 
@@ -37,7 +33,7 @@ export class UserRepository {
    * @param {string|null} profileData.avatarUrl
    * @returns {Promise<object>} Updated profile
    */
-  async updateProfile(id: string, { fullName, avatarUrl }: { fullName: string | null; avatarUrl: string | null }): Promise<any> {
+  async function updateProfile(id: string, { fullName, avatarUrl }: { fullName: string | null; avatarUrl: string | null }): Promise<any> {
     const query = `
       UPDATE public.profiles 
       SET 
@@ -47,7 +43,12 @@ export class UserRepository {
       WHERE id = $1 
       RETURNING id, email, full_name, avatar_url, updated_at
     `;
-    const result = await this.db.query(query, [id, fullName, avatarUrl]);
+    const result = await pgPool.query(query, [id, fullName, avatarUrl]);
     return result.rows[0];
   }
+
+  return {
+    findById,
+    updateProfile
+  };
 }

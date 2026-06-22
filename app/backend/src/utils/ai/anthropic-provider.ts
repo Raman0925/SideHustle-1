@@ -1,18 +1,16 @@
 import { ModelProvider, CompletionParams, CompletionResult } from './model-router.js';
-import { EmbeddingService } from '../embeddings/embeddingService.js';
+import { EmbeddingService, createEmbeddingService } from '../embeddings/embeddingService.js';
 
-export class AnthropicProvider implements ModelProvider {
-  private readonly embeddingService: EmbeddingService;
+export interface AnthropicProvider extends ModelProvider {}
 
-  constructor(private readonly apiKey: string) {
-    this.embeddingService = new EmbeddingService('text-embedding-3-small');
-  }
+export function createAnthropicProvider(apiKey: string): AnthropicProvider {
+  const embeddingService = createEmbeddingService('text-embedding-3-small');
 
   /**
    * Calls the Anthropic Messages API and normalizes the response to CompletionResult.
    */
-  public async complete(params: CompletionParams): Promise<CompletionResult> {
-    if (!this.apiKey) {
+  async function complete(params: CompletionParams): Promise<CompletionResult> {
+    if (!apiKey) {
       throw new Error('Anthropic API key is not defined');
     }
 
@@ -36,7 +34,7 @@ export class AnthropicProvider implements ModelProvider {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-        'x-api-key': this.apiKey,
+        'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
         'content-type': 'application/json'
       },
@@ -77,7 +75,12 @@ export class AnthropicProvider implements ModelProvider {
   /**
    * Generates embedding vector for a text.
    */
-  public async embed(text: string): Promise<number[]> {
-    return this.embeddingService.embed(text);
+  async function embed(text: string): Promise<number[]> {
+    return embeddingService.embed(text);
   }
+
+  return {
+    complete,
+    embed
+  };
 }

@@ -1,28 +1,22 @@
 import pg from 'pg';
 import { FastifyError } from 'fastify';
-import { UserRepository } from './user.repository.js';
+import { UserRepository, createUserRepository } from './user.repository.js';
 
-/**
- * User Service
- * Coordinates user-specific business logic.
- */
-export class UserService {
-  private readonly repository: UserRepository;
+export interface UserService {
+  getProfile(userId: string): Promise<any>;
+  updateProfile(userId: string, updates: { fullName: string | null; avatarUrl: string | null }): Promise<any>;
+}
 
-  /**
-   * @param {import('pg').Pool} pgPool
-   */
-  constructor(pgPool: pg.Pool) {
-    this.repository = new UserRepository(pgPool);
-  }
+export function createUserService(pgPool: pg.Pool): UserService {
+  const repository = createUserRepository(pgPool);
 
   /**
    * Retrieves a user profile by ID
    * @param {string} userId
    * @returns {Promise<object>}
    */
-  async getProfile(userId: string): Promise<any> {
-    const profile = await this.repository.findById(userId);
+  async function getProfile(userId: string): Promise<any> {
+    const profile = await repository.findById(userId);
     if (!profile) {
       const error = new Error('User profile not found.') as FastifyError;
       error.statusCode = 404;
@@ -37,8 +31,13 @@ export class UserService {
    * @param {object} updates
    * @returns {Promise<object>}
    */
-  async updateProfile(userId: string, updates: { fullName: string | null; avatarUrl: string | null }): Promise<any> {
+  async function updateProfile(userId: string, updates: { fullName: string | null; avatarUrl: string | null }): Promise<any> {
     // Add business rules or validations here if needed (e.g. sanitizing input)
-    return this.repository.updateProfile(userId, updates);
+    return repository.updateProfile(userId, updates);
   }
+
+  return {
+    getProfile,
+    updateProfile
+  };
 }

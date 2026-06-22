@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { PromptManager, customerSupportSystemPrompt } from '../prompt-manager.js';
+import { PromptManager, createPromptManager, customerSupportSystemPrompt } from '../prompt-manager.js';
 
 describe('PromptManager', () => {
   let manager: PromptManager;
 
   beforeEach(() => {
-    manager = new PromptManager();
+    manager = createPromptManager();
   });
 
   it('render correctly replaces variables', () => {

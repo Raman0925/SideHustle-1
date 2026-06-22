@@ -1,43 +1,63 @@
 import postgres from 'postgres';
-import { HybridRetriever } from '../../utils/vector/hybrid-retriever.js';
-import { VectorStore } from '../../utils/vectorStore/vectorStore.js';
-import { EmbeddingService } from '../../utils/embeddings/embeddingService.js';
-import { Reranker } from '../../utils/vector/reranker.js';
-import { ContextWindowAssembler } from '../../utils/tokens/contextWindowAssembler.js';
-import { TokenBudgetManager } from '../../utils/tokens/tokenBudgetManager.js';
-import { ModelRouter } from '../../utils/ai/model-router.js';
-import { AnthropicProvider } from '../../utils/ai/anthropic-provider.js';
-import { StreamingProvider } from '../../utils/ai/streaming-provider.js';
+import { HybridRetriever, createHybridRetriever } from '../../utils/vector/hybrid-retriever.js';
+import { VectorStore, createVectorStore } from '../../utils/vectorStore/vectorStore.js';
+import { EmbeddingService, createEmbeddingService } from '../../utils/embeddings/embeddingService.js';
+import { Reranker, createReranker } from '../../utils/vector/reranker.js';
+import { ContextWindowAssembler, createContextWindowAssembler } from '../../utils/tokens/contextWindowAssembler.js';
+import { TokenBudgetManager, createTokenBudgetManager } from '../../utils/tokens/tokenBudgetManager.js';
+import { ModelRouter, createModelRouter } from '../../utils/ai/model-router.js';
+import { AnthropicProvider, createAnthropicProvider } from '../../utils/ai/anthropic-provider.js';
+import { StreamingProvider, createStreamingProvider } from '../../utils/ai/streaming-provider.js';
 import { Message, contextBudget } from '../../utils/tokens/types.js';
 import { customerSupportSystemPrompt } from '../../utils/prompts/prompt-manager.js';
 import { DEFAULT_CHAT_BUDGET, DEFAULT_COMPANY_NAME, DEFAULT_SUPPORT_EMAIL } from './chat.constant.js';
 import { mapTierToModelRouterTier } from './chat.util.js';
 
-export class ChatService {
-  constructor(
-    private readonly retriever: HybridRetriever,
-    private readonly assembler: ContextWindowAssembler,
-    private readonly tokenManager: TokenBudgetManager,
-    private readonly modelRouter: ModelRouter,
-    private readonly provider: AnthropicProvider,
-    private readonly streaming: StreamingProvider
-  ) {}
+export interface ChatService {
+  sendMessage(
+    message: string,
+    history: Message[],
+    tier?: 'fast' | 'balanced' | 'powerful'
+  ): Promise<{ text: string; usage: { inputTokens: number; outputTokens: number } }>;
 
-  public async sendMessage(
+  streamMessage(
+    message: string,
+    history: Message[],
+    onChunk: (text: string) => void,
+    onDone: (usage: { inputTokens: number; outputTokens: number }) => void,
+    tier?: 'fast' | 'balanced' | 'powerful'
+  ): Promise<void>;
+
+  streamMessageIterable(
+    message: string,
+    history: Message[],
+    tier?: 'fast' | 'balanced' | 'powerful'
+  ): AsyncGenerator<string | { data: any; event: string }, void, unknown>;
+}
+
+export function createChatService(
+  retriever: HybridRetriever,
+  assembler: ContextWindowAssembler,
+  tokenManager: TokenBudgetManager,
+  modelRouter: ModelRouter,
+  provider: AnthropicProvider,
+  streaming: StreamingProvider
+): ChatService {
+  async function sendMessage(
     message: string,
     history: Message[],
     tier: 'fast' | 'balanced' | 'powerful' = 'balanced'
   ): Promise<{ text: string; usage: { inputTokens: number; outputTokens: number } }> {
     // 1. Retrieve documents matching the user query
-    const searchResults = await this.retriever.retrieve(message);
+    const searchResults = await retriever.retrieve(message);
     const documents = searchResults.map(r => r.content);
 
     // 2. Perform budget token counts of retrieved documents to mimic assembler behavior
-    const budget = this.assembler.getBudget();
+    const budget = assembler.getBudget();
     const fittedDocs: string[] = [];
     let usedTokens = 0;
     for (const doc of documents) {
-      const tokens = this.tokenManager.getTokenCount(doc);
+      const tokens = tokenManager.getTokenCount(doc);
       if (usedTokens + tokens <= budget.retrievedDocuments) {
         fittedDocs.push(doc);
         usedTokens += tokens;
@@ -50,7 +70,7 @@ export class ChatService {
       .replace('{{supportEmail}}', DEFAULT_SUPPORT_EMAIL);
 
     // 4. Call ContextWindowAssembler to validate limits and calculate overall token counts
-    const assembled = this.assembler.assemble(baseSystemPrompt, history, message, documents);
+    const assembled = assembler.assemble(baseSystemPrompt, history, message, documents);
 
     // 5. Replace sources placeholder with fitted documents in the final system prompt
     const sourcesText = fittedDocs.join('\n\n');
@@ -58,10 +78,10 @@ export class ChatService {
 
     // 6. Get model configuration from router
     const routerTier = mapTierToModelRouterTier(tier);
-    const modelConfig = this.modelRouter.getModel('chat', routerTier);
+    const modelConfig = modelRouter.getModel('chat', routerTier);
 
     // 7. Execute provider call
-    const result = await this.provider.complete({
+    const result = await provider.complete({
       model: modelConfig.modelName,
       messages: assembled.messages,
       systemPrompt: finalSystemPrompt
@@ -70,7 +90,7 @@ export class ChatService {
     return result;
   }
 
-  public async streamMessage(
+  async function streamMessage(
     message: string,
     history: Message[],
     onChunk: (text: string) => void,
@@ -78,15 +98,15 @@ export class ChatService {
     tier: 'fast' | 'balanced' | 'powerful' = 'balanced'
   ): Promise<void> {
     // 1. Retrieve documents matching the user query
-    const searchResults = await this.retriever.retrieve(message);
+    const searchResults = await retriever.retrieve(message);
     const documents = searchResults.map(r => r.content);
 
     // 2. Perform budget token counts of retrieved documents to mimic assembler behavior
-    const budget = this.assembler.getBudget();
+    const budget = assembler.getBudget();
     const fittedDocs: string[] = [];
     let usedTokens = 0;
     for (const doc of documents) {
-      const tokens = this.tokenManager.getTokenCount(doc);
+      const tokens = tokenManager.getTokenCount(doc);
       if (usedTokens + tokens <= budget.retrievedDocuments) {
         fittedDocs.push(doc);
         usedTokens += tokens;
@@ -99,7 +119,7 @@ export class ChatService {
       .replace('{{supportEmail}}', DEFAULT_SUPPORT_EMAIL);
 
     // 4. Call ContextWindowAssembler to validate limits and calculate overall token counts
-    const assembled = this.assembler.assemble(baseSystemPrompt, history, message, documents);
+    const assembled = assembler.assemble(baseSystemPrompt, history, message, documents);
 
     // 5. Replace sources placeholder with fitted documents in the final system prompt
     const sourcesText = fittedDocs.join('\n\n');
@@ -107,10 +127,10 @@ export class ChatService {
 
     // 6. Get model configuration from router
     const routerTier = mapTierToModelRouterTier(tier);
-    const modelConfig = this.modelRouter.getModel('chat', routerTier);
+    const modelConfig = modelRouter.getModel('chat', routerTier);
 
     // 7. Execute streaming provider call
-    await this.streaming.streamComplete(
+    await streaming.streamComplete(
       {
         model: modelConfig.modelName,
         messages: assembled.messages,
@@ -125,7 +145,7 @@ export class ChatService {
    * Helper to convert callback-based streaming into an AsyncGenerator.
    * Encapsulates the SSE message queuing and formatting business logic.
    */
-  public async *streamMessageIterable(
+  async function *streamMessageIterable(
     message: string,
     history: Message[],
     tier: 'fast' | 'balanced' | 'powerful' = 'balanced'
@@ -142,7 +162,7 @@ export class ChatService {
     };
 
     // Trigger asynchronous message stream in the background
-    this.streamMessage(
+    streamMessage(
       message,
       history,
       (chunk) => push(chunk),
@@ -169,6 +189,12 @@ export class ChatService {
       yield item;
     }
   }
+
+  return {
+    sendMessage,
+    streamMessage,
+    streamMessageIterable
+  };
 }
 
 // Global Singleton Initialization for exported domain functions
@@ -176,18 +202,18 @@ const db = postgres(process.env.DATABASE_URL || '', {
   ssl: process.env.DATABASE_URL?.includes('localhost') ? false : { rejectUnauthorized: false }
 });
 
-const vectorStore = new VectorStore(db);
-const embeddingService = new EmbeddingService('text-embedding-3-small');
-const reranker = new Reranker(process.env.COHERE_API_KEY || 'dummy-cohere-key');
-const retriever = new HybridRetriever(vectorStore, embeddingService, reranker, db);
+const vectorStore = createVectorStore(db);
+const embeddingService = createEmbeddingService('text-embedding-3-small');
+const reranker = createReranker(process.env.COHERE_API_KEY || 'dummy-cohere-key');
+const retriever = createHybridRetriever(vectorStore, embeddingService, reranker, db);
 
-const tokenManager = new TokenBudgetManager(DEFAULT_CHAT_BUDGET);
-const assembler = new ContextWindowAssembler(DEFAULT_CHAT_BUDGET, tokenManager);
-const modelRouter = new ModelRouter();
-const provider = new AnthropicProvider(process.env.ANTHROPIC_API_KEY || 'dummy-anthropic-key');
-const streaming = new StreamingProvider(process.env.ANTHROPIC_API_KEY || 'dummy-anthropic-key');
+const tokenManager = createTokenBudgetManager(DEFAULT_CHAT_BUDGET);
+const assembler = createContextWindowAssembler(DEFAULT_CHAT_BUDGET, tokenManager);
+const modelRouter = createModelRouter();
+const provider = createAnthropicProvider(process.env.ANTHROPIC_API_KEY || 'dummy-anthropic-key');
+const streaming = createStreamingProvider(process.env.ANTHROPIC_API_KEY || 'dummy-anthropic-key');
 
-export const chatService = new ChatService(
+export const chatService = createChatService(
   retriever,
   assembler,
   tokenManager,

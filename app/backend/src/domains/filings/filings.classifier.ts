@@ -53,9 +53,12 @@ const ROUTINE_KEYWORDS: string[] = [
 // Stage 2: WATCH tier filings can optionally go to Haiku for a second opinion
 //          (handled in filings.service.ts, not here)
 
-export class FilingClassifier {
+export interface FilingClassifier {
+  classify(subject: string, filingType: string): ClassificationResult;
+}
 
-  public classify(subject: string, filingType: string): ClassificationResult {
+export function createFilingClassifier(): FilingClassifier {
+  function classify(subject: string, filingType: string): ClassificationResult {
     const text = `${subject} ${filingType}`.toLowerCase();
 
     const matchedMaterial: string[] = [];
@@ -122,4 +125,6 @@ export class FilingClassifier {
       reason: 'No keyword match — needs LLM classification',
     };
   }
+
+  return { classify };
 }

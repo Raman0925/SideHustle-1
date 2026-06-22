@@ -38,8 +38,17 @@ const MODELS = {
   }
 };
 
-export class ModelRouter {
-  private static readonly registry: Record<string, Record<string, ModelConfig>> = {
+export interface ModelRouter {
+  getModel(task: string, tier: string): ModelConfig;
+  estimateCost(
+    config: ModelConfig,
+    inputTokens: number,
+    outputTokens: number
+  ): number;
+}
+
+export function createModelRouter(): ModelRouter {
+  const registry: Record<string, Record<string, ModelConfig>> = {
     chat: {
       cheap: MODELS.haiku,
       premium: MODELS.sonnet
@@ -65,8 +74,8 @@ export class ModelRouter {
    * Returns correct model configuration for a task and tier.
    * Throws if an unknown task or tier is requested.
    */
-  public getModel(task: string, tier: string): ModelConfig {
-    const taskConfig = ModelRouter.registry[task];
+  function getModel(task: string, tier: string): ModelConfig {
+    const taskConfig = registry[task];
     if (!taskConfig) {
       throw new Error(`Unknown task: ${task}`);
     }
@@ -80,7 +89,7 @@ export class ModelRouter {
   /**
    * Estimates cost given token counts.
    */
-  public estimateCost(
+  function estimateCost(
     config: ModelConfig,
     inputTokens: number,
     outputTokens: number
@@ -89,4 +98,9 @@ export class ModelRouter {
     const outputCost = (outputTokens / 1_000_000) * config.outputCostPerMillion;
     return inputCost + outputCost;
   }
+
+  return {
+    getModel,
+    estimateCost
+  };
 }

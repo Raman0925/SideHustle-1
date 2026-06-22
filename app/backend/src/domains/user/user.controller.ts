@@ -1,5 +1,5 @@
 import { FastifyInstance, FastifyPluginOptions, FastifyRequest, FastifyReply } from 'fastify';
-import { UserService } from './user.service.js';
+import { UserService, createUserService } from './user.service.js';
 
 /**
  * User Controller Plugin
@@ -7,7 +7,7 @@ import { UserService } from './user.service.js';
  */
 export default async function userController(fastify: FastifyInstance, options: FastifyPluginOptions) {
   // Instantiate UserService with Fastify's pg pool
-  const userService = new UserService(fastify.pg);
+  const userService = createUserService(fastify.pg);
 
   fastify.get(
     '/me',

@@ -53,26 +53,32 @@ function processSSELine(
   return null;
 }
 
-export class StreamingProvider {
-  constructor(private readonly apiKey: string) {}
+export interface StreamingProvider {
+  streamComplete(
+    params: CompletionParams,
+    onChunk: (text: string) => void,
+    onDone: (usage: { inputTokens: number; outputTokens: number }) => void
+  ): Promise<void>;
+}
 
+export function createStreamingProvider(apiKey: string): StreamingProvider {
   /**
    * Calls the Anthropic Messages streaming API, calling onChunk for text deltas,
    * and onDone with final token usage stats when streaming concludes.
    */
-  public async streamComplete(
+  async function streamComplete(
     params: CompletionParams,
     onChunk: (text: string) => void,
     onDone: (usage: { inputTokens: number; outputTokens: number }) => void
   ): Promise<void> {
-    if (!this.apiKey) {
+    if (!apiKey) {
       throw new Error('Anthropic API key is not defined');
     }
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-        'x-api-key': this.apiKey,
+        'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
         'content-type': 'application/json'
       },
@@ -147,4 +153,8 @@ export class StreamingProvider {
 
     onDone({ inputTokens, outputTokens });
   }
+
+  return {
+    streamComplete
+  };
 }

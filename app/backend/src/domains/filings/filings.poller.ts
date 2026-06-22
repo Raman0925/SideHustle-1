@@ -22,13 +22,19 @@ const NSE_HEADERS = {
   'sec-ch-ua-platform': '"Windows"',
 };
 
-export class NSEPoller {
-  private lastSeenIds = new Set<string>();
-  private cookieJar: string = '';
+export interface NSEPoller {
+  poll(): Promise<RawFiling[]>;
+  cookieJar: string;
+  lastSeenIds: Set<string>;
+}
+
+export function createNSEPoller(): NSEPoller {
+  const lastSeenIds = new Set<string>();
+  let cookieJar: string = '';
 
   // NSE requires a session cookie obtained by hitting the homepage first.
   // Without this, all API calls return 401.
-  private async refreshCookie(): Promise<void> {
+  async function refreshCookie(): Promise<void> {
     try {
       const resp = await fetch(NSE_BASE_URL, {
         headers: NSE_HEADERS,
@@ -37,7 +43,7 @@ export class NSEPoller {
       const setCookie = resp.headers.get('set-cookie');
       if (setCookie) {
         // Extract just the cookie values (not directives like Path, HttpOnly etc.)
-        this.cookieJar = setCookie
+        cookieJar = setCookie
           .split(',')
           .map(c => c.split(';')[0].trim())
           .join('; ');
@@ -47,7 +53,7 @@ export class NSEPoller {
     }
   }
 
-  private async fetchWithRetry(url: string, retries = 3): Promise<Response> {
+  async function fetchWithRetry(url: string, retries = 3): Promise<Response> {
     let lastError: Error | null = null;
 
     for (let attempt = 0; attempt < retries; attempt++) {
@@ -55,14 +61,14 @@ export class NSEPoller {
         const resp = await fetch(url, {
           headers: {
             ...NSE_HEADERS,
-            ...(this.cookieJar ? { Cookie: this.cookieJar } : {}),
+            ...(cookieJar ? { Cookie: cookieJar } : {}),
           },
           signal: AbortSignal.timeout(15_000),
         });
 
         // NSE returns 401 when cookie expires — refresh and retry
         if (resp.status === 401) {
-          await this.refreshCookie();
+          await refreshCookie();
           continue;
         }
 
@@ -82,15 +88,15 @@ export class NSEPoller {
     throw lastError ?? new Error('NSE fetch failed after retries');
   }
 
-  public async poll(): Promise<RawFiling[]> {
+  async function poll(): Promise<RawFiling[]> {
     // First poll — get cookie
-    if (!this.cookieJar) {
-      await this.refreshCookie();
+    if (!cookieJar) {
+      await refreshCookie();
     }
 
     let data: any;
     try {
-      const resp = await this.fetchWithRetry(NSE_ALL_ANNOUNCEMENTS_URL);
+      const resp = await fetchWithRetry(NSE_ALL_ANNOUNCEMENTS_URL);
       data = await resp.json();
     } catch (err) {
       console.error('[NSEPoller] Poll failed:', err);
@@ -105,13 +111,13 @@ export class NSEPoller {
       // Deduplicate by a stable key: symbol + subject + exchange date
       const id = `NSE-${item.symbol}-${item.exchdisstime}-${item.subject?.slice(0, 50)}`;
 
-      if (this.lastSeenIds.has(id)) continue;
-      this.lastSeenIds.add(id);
+      if (lastSeenIds.has(id)) continue;
+      lastSeenIds.add(id);
 
       // Keep in-memory set bounded — remove oldest entries beyond 5000
-      if (this.lastSeenIds.size > 5000) {
-        const [first] = this.lastSeenIds;
-        this.lastSeenIds.delete(first);
+      if (lastSeenIds.size > 5000) {
+        const [first] = lastSeenIds;
+        lastSeenIds.delete(first);
       }
 
       newFilings.push({
@@ -133,6 +139,13 @@ export class NSEPoller {
 
     return newFilings;
   }
+
+  return {
+    poll,
+    get cookieJar() { return cookieJar; },
+    set cookieJar(val) { cookieJar = val; },
+    get lastSeenIds() { return lastSeenIds; }
+  };
 }
 
 // ─── BSE Poller ───────────────────────────────────────────────────────────────
@@ -151,10 +164,14 @@ const BSE_HEADERS = {
   'Referer': 'https://www.bseindia.com/',
 };
 
-export class BSEPoller {
-  private lastSeenIds = new Set<string>();
+export interface BSEPoller {
+  poll(): Promise<RawFiling[]>;
+}
 
-  private async fetchWithRetry(url: string, retries = 3): Promise<Response> {
+export function createBSEPoller(): BSEPoller {
+  const lastSeenIds = new Set<string>();
+
+  async function fetchWithRetry(url: string, retries = 3): Promise<Response> {
     let lastError: Error | null = null;
 
     for (let attempt = 0; attempt < retries; attempt++) {
@@ -179,10 +196,10 @@ export class BSEPoller {
     throw lastError ?? new Error('BSE fetch failed after retries');
   }
 
-  public async poll(): Promise<RawFiling[]> {
+  async function poll(): Promise<RawFiling[]> {
     let data: any;
     try {
-      const resp = await this.fetchWithRetry(BSE_ANNOUNCEMENTS_URL);
+      const resp = await fetchWithRetry(BSE_ANNOUNCEMENTS_URL);
       data = await resp.json();
     } catch (err) {
       console.error('[BSEPoller] Poll failed:', err);
@@ -196,12 +213,12 @@ export class BSEPoller {
     for (const item of announcements) {
       const id = `BSE-${item.SCRIP_CD}-${item.DT_TM}-${item.HEADLINE?.slice(0, 50)}`;
 
-      if (this.lastSeenIds.has(id)) continue;
-      this.lastSeenIds.add(id);
+      if (lastSeenIds.has(id)) continue;
+      lastSeenIds.add(id);
 
-      if (this.lastSeenIds.size > 5000) {
-        const [first] = this.lastSeenIds;
-        this.lastSeenIds.delete(first);
+      if (lastSeenIds.size > 5000) {
+        const [first] = lastSeenIds;
+        lastSeenIds.delete(first);
       }
 
       newFilings.push({
@@ -221,4 +238,6 @@ export class BSEPoller {
 
     return newFilings;
   }
+
+  return { poll };
 }

@@ -36,38 +36,47 @@ export interface Message {
   content: string | Array<TextContentBlock | ToolUseBlock | ToolResultBlock>;
 }
 
-export class ToolRunner {
-  private readonly tools = new Map<string, ToolHandler>();
-  private readonly MAX_ITERATIONS = 10;
+export interface ToolRunner {
+  register(tool: ToolHandler): void;
+  getDefinitions(): ToolDefinition[];
+  run(
+    messages: Message[],
+    apiKey: string
+  ): Promise<{ result: string; toolCallCount: number }>;
+}
+
+export function createToolRunner(): ToolRunner {
+  const tools = new Map<string, ToolHandler>();
+  const MAX_ITERATIONS = 10;
 
   /**
    * Registers a tool and its handler.
    */
-  public register(tool: ToolHandler): void {
-    this.tools.set(tool.definition.name, tool);
+  function register(tool: ToolHandler): void {
+    tools.set(tool.definition.name, tool);
   }
 
   /**
    * Returns all registered tool definitions.
    */
-  public getDefinitions(): ToolDefinition[] {
-    return Array.from(this.tools.values()).map(t => t.definition);
+  function getDefinitions(): ToolDefinition[] {
+    return Array.from(tools.values()).map(t => t.definition);
   }
 
   /**
    * Runs the tool loop until the model returns end_turn or MAX_ITERATIONS is exceeded.
    */
-  public async run(
+  async function run(
     messages: Message[],
     apiKey: string
   ): Promise<{ result: string; toolCallCount: number }> {
     let toolCallCount = 0;
     let iterations = 0;
 
-    const toolDefinitions = this.getDefinitions();
+    const toolDefinitions = getDefinitions();
     const currentMessages = [...messages];
 
-    while (iterations < this.MAX_ITERATIONS) {
+    while (iterations < MAX_ITERATIONS) {
       const requestBody: Record<string, unknown> = {
         model: 'claude-3-5-haiku-20241022',
         max_tokens: 4096,
@@ -113,7 +122,7 @@ export class ToolRunner {
         for (const block of responseData.content) {
           if (block.type === 'tool_use') {
             const toolUse = block as ToolUseBlock;
-            const tool = this.tools.get(toolUse.name);
+            const tool = tools.get(toolUse.name);
 
             let resultString: string;
             if (!tool) {
@@ -153,6 +162,12 @@ export class ToolRunner {
       }
     }
 
-    throw new Error(`Exceeded maximum tool execution iterations of ${this.MAX_ITERATIONS}`);
+    throw new Error(`Exceeded maximum tool execution iterations of ${MAX_ITERATIONS}`);
   }
+
+  return {
+    register,
+    getDefinitions,
+    run
+  };
 }
