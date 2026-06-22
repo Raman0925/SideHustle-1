@@ -52,6 +52,7 @@
     "fastify-plugin": "^6.0.0",
     "gpt-tokenizer": "^3.4.0",
     "jsonwebtoken": "^9.0.3",
+    "pdf-parse": "^1.1.4",
     "pg": "^8.21.0",
     "postgres": "^3.4.9",
     "zod": "^4.4.3",
@@ -60,6 +61,7 @@
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20.19.43",
+    "@types/pdf-parse": "^1.1.5",
     "@types/pg": "^8.20.0",
     "prettier": "^3.4.2",
     "tsx": "^4.22.4",
