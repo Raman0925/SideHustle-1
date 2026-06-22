@@ -12,7 +12,7 @@ async function dbConnectorPlugin(fastify: FastifyInstance, options: FastifyPlugi
     connectionString,
     max: 20,
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 2000,
+    connectionTimeoutMillis: 10000,
     ssl: {
       rejectUnauthorized: false
     }
